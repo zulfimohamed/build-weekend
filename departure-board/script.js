@@ -9,8 +9,11 @@ const FIELDS = [
   { label: 'FLIGHT',      width: 6  },
   { label: 'AIRLINE',     width: 13 },
   { label: 'GATE',        width: 3  },
+  { label: 'CHECK-IN',    width: 5  },
   { label: 'REMARKS',     width: 10 },
 ];
+// the boarding column isn't flaps — it's the row of lamps on the right
+const BOARDING_WIDTH = 4;
 const ROWS = 16;
 const ROW_WIDTH = FIELDS.reduce((s, f) => s + f.width, 0);
 
@@ -175,6 +178,13 @@ for (const f of FIELDS) {
   if (f !== FIELDS[0]) span.classList.add('gap');
   colheads.appendChild(span);
 }
+const boardingHead = document.createElement('span');
+boardingHead.textContent = 'BOARDING';
+boardingHead.style.flex = String(BOARDING_WIDTH);
+boardingHead.classList.add('f-boarding', 'gap');
+colheads.appendChild(boardingHead);
+
+const lamps = []; // lamps[row] -> boarding indicator element
 
 for (let r = 0; r < ROWS; r++) {
   const rowEl = document.createElement('div');
@@ -190,6 +200,11 @@ for (let r = 0; r < ROWS; r++) {
       row.push({ el, current: ' ', target: ' ', nextAt: 0, flipAlt: false });
     }
   }
+  const lamp = document.createElement('span');
+  lamp.className = 'lamp f-boarding gap';
+  lamp.style.flex = String(BOARDING_WIDTH);
+  rowEl.appendChild(lamp);
+  lamps.push(lamp);
   boardEl.appendChild(rowEl);
   cells.push(row);
 }
@@ -250,9 +265,13 @@ function setRowStatus(r, remark) {
   for (let c = REMARK_START; c < ROW_WIDTH; c++) {
     const el = cells[r][c].el;
     el.classList.remove(...STATUS_CLASSES);
-    // only the cells the remark occupies, so marks don't underline blanks
+    // only the cells the remark occupies, so the highlight doesn't span blanks
     if (cls && c - REMARK_START < len) el.classList.add(cls);
   }
+  // the boarding lamp lights while the flight actually boards,
+  // and blinks for the final call
+  lamps[r].classList.toggle('lit', remark === 'BOARDING' || remark === 'FINAL CALL');
+  lamps[r].classList.toggle('blink', remark === 'FINAL CALL');
 }
 
 // ---------- flights ----------
@@ -262,6 +281,13 @@ const fmtTime = (mins) => {
   const m = ((mins % 1440) + 1440) % 1440;
   return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
 };
+
+// a check-in row assignment: a single desk row or a pair, like "04" or "10-11"
+function randCheckin() {
+  const row = 1 + Math.floor(Math.random() * 11);
+  const pad = (n) => String(n).padStart(2, '0');
+  return Math.random() < 0.5 ? pad(row) + '-' + pad(row + 1) : pad(row);
+}
 
 let flights = [];
 
@@ -281,6 +307,7 @@ function newFlight(depMins) {
     flight: code + String(100 + Math.floor(Math.random() * 900)),
     airline,
     gate: 'ABCDEF'[Math.floor(Math.random() * 6)] + (1 + Math.floor(Math.random() * 29)),
+    checkin: randCheckin(),
     remark: rand(REMARKS),
   };
 }
@@ -300,7 +327,7 @@ function generateFlights() {
 }
 
 function flightToText(f) {
-  const cols = [fmtTime(f.dep), f.origin, f.dest, f.flight, f.airline, f.gate, f.remark];
+  const cols = [fmtTime(f.dep), f.origin, f.dest, f.flight, f.airline, f.gate, f.checkin, f.remark];
   return cols.map((v, i) => v.padEnd(FIELDS[i].width).slice(0, FIELDS[i].width)).join('');
 }
 
@@ -470,14 +497,14 @@ themeSel.addEventListener('change', () => {
   applyTheme();
 });
 
-// ---------- status marks (accessibility, on by default) ----------
+// ---------- boarding marks (on by default) ----------
 
-// pattern-coded underlines on highlighted remarks, so status reads
-// without relying on colour alone
+// the round lamps in the boarding column, lit while a flight boards —
+// like the little green indicators on the real Changi board
 let marksOn = localStorage.getItem('db-marks') !== 'off';
 
 function applyMarks() {
-  document.body.classList.toggle('a11y', marksOn);
+  document.body.classList.toggle('marks', marksOn);
   marksBtn.setAttribute('aria-pressed', String(marksOn));
   marksBtn.textContent = (marksOn ? '◉' : '○') + ' marks';
 }
