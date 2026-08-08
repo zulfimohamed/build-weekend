@@ -35,7 +35,12 @@ traffic is the realistic part.
 - **Game speed** — x1 / x2 / x4 / x8, and a **timezone** picker for the
   clock and timetable: UTC, airport local time, or your own.
 
-Works on phones and tablets — the layout stacks, the tap targets grow.
+Built to fit any screen: the whole thing is an app shell that fills the
+viewport and never scrolls as a page — the strip bay and timetable scroll
+inside themselves. On phones the layout stacks, the radar sizes itself to
+whatever room is left, the controls become one scrolling row, and the
+airport ground map turns a quarter turn so the runway runs down the
+screen. Landscape phones get the side-by-side layout with slimmer chrome.
 
 Keyboard: `r` range · `v` view mode · `l` labels · `t` trails ·
 `w` weather · `s` sound. The view is shareable: `?hub=SIN&spd=2&tz=hub`.
