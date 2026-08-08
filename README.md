@@ -24,7 +24,7 @@ in a browser and it just works.
 
 - **[departure-board](departure-board/)** — a split-flap airport departure
   board that clatters out an invented flight schedule, drifts the remarks
-  like a real board, and displays any message you type at it. Sound included.
+  like a real board, and adds random flights on demand. Sound included.
 - **[window-seat](window-seat/)** — a travel emulator: the endless view from
   a train or plane window, with parallax scenery, day/sunset/night, and
   procedural ambient sound.
