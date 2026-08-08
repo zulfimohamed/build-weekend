@@ -31,10 +31,7 @@ in a browser and it just works.
 
 ### Viewing them in a browser
 
-Locally: open the project's `index.html`. Live on the internet: this repo is
-meant to be served with GitHub Pages (Settings → Pages → deploy from `main`,
-root folder). Once enabled, every project is a live site at
-`https://zulfimohamed.github.io/build-weekend/<project-folder>/`.
+Locally: open the project's `index.html`. 
 
 ## License — what happens if someone copies this?
 
