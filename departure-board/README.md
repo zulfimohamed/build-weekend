@@ -1,10 +1,10 @@
 # departure-board
 
 A split-flap airport departure board, the kind that clatters. It invents a
-schedule of sixteen flights — origin, destination, airline, gate — drifts
-their remarks over time the way a real board does (boarding, final call,
-departed, the occasional cancellation), and lets you clatter new random
-flights into the schedule with a button press.
+schedule of sixteen flights — origin, destination, airline, gate, check-in
+rows — drifts their remarks over time the way a real board does (boarding,
+final call, departed, the occasional cancellation), and lets you clatter
+new random flights into the schedule with a button press.
 
 Turn the sound on for the full effect.
 
@@ -18,10 +18,10 @@ departure to make room.
 
 Remarks are colour-coded like the real thing — green while boarding, a
 pulsing accent for final call, red for cancellations — and a delayed flight
-actually flaps its departure time back. Status marks (on by default) add
-pattern-coded underlines to highlighted remarks — solid for boarding,
-dashed for delayed, dotted for cancelled, thick for final call — so status
-reads without relying on colour alone.
+actually flaps its departure time back. Each flight gets a check-in row
+assignment ("04" or "10-11"), and a boarding column of round lamp marks
+(on by default) lights up green while a flight boards — steady for
+boarding, blinking through the final call — just like Changi's board.
 
 There are four themes (classic amber, green phosphor, daylight, indigo),
 and your city, theme, and marks choices stick between visits.
