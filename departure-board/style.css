@@ -1,11 +1,73 @@
 :root {
   --bg: #0a0c0f;
+  --glow: #12161c;
   --board: #12151a;
+  --edge: #23282f;
   --cell-top: #23282f;
   --cell-bot: #171b20;
+  --seam: rgba(0, 0, 0, 0.55);
   --ink: #ece7d9;
-  --amber: #ffb84d;
+  --accent: #ffb84d;
   --dim: #6f7680;
+  --good: #7ddc8e;
+  --bad: #ff6b6b;
+  --ctl: #1a1f26;
+  --ctl-edge: #2a3038;
+  --input-bg: #14181d;
+}
+
+body.theme-phosphor {
+  --bg: #040705;
+  --glow: #0a130c;
+  --board: #081009;
+  --edge: #16281b;
+  --cell-top: #122619;
+  --cell-bot: #0b1a10;
+  --seam: rgba(0, 0, 0, 0.6);
+  --ink: #b7f0c3;
+  --accent: #55ff88;
+  --dim: #47664f;
+  --good: #55ff88;
+  --bad: #ff7a66;
+  --ctl: #0d1a11;
+  --ctl-edge: #1c3323;
+  --input-bg: #0a150e;
+}
+
+body.theme-daylight {
+  --bg: #cfc9ba;
+  --glow: #e6e0d2;
+  --board: #efe9dc;
+  --edge: #c9c2af;
+  --cell-top: #fbf7ee;
+  --cell-bot: #e7e0cf;
+  --seam: rgba(0, 0, 0, 0.18);
+  --ink: #23262e;
+  --accent: #a35c00;
+  --dim: #8d8776;
+  --good: #1e7c3d;
+  --bad: #b8332a;
+  --ctl: #e7e1d2;
+  --ctl-edge: #c9c2af;
+  --input-bg: #f4efe4;
+}
+
+body.theme-indigo {
+  --bg: #06080f;
+  --glow: #0d1322;
+  --board: #0c1120;
+  --edge: #1d2742;
+  --cell-top: #1c2743;
+  --cell-bot: #131a30;
+  --seam: rgba(0, 0, 0, 0.55);
+  --ink: #e2e8fb;
+  --accent: #8ab0ff;
+  --dim: #5c6788;
+  --good: #79e0a0;
+  --bad: #ff7b8a;
+  --ctl: #131a2c;
+  --ctl-edge: #263356;
+  --input-bg: #0f1526;
 }
 
 * { box-sizing: border-box; }
@@ -16,14 +78,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(120% 120% at 50% 0%, #12161c 0%, var(--bg) 60%);
+  background: radial-gradient(120% 120% at 50% 0%, var(--glow) 0%, var(--bg) 60%);
   color: var(--ink);
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
 .hall {
   width: 100%;
-  max-width: 1100px;
+  max-width: 1500px;
   padding: 24px;
 }
 
@@ -32,35 +94,35 @@ body {
   justify-content: space-between;
   align-items: baseline;
   padding: 0 6px 14px;
-  color: var(--amber);
-  text-shadow: 0 0 18px rgba(255, 184, 77, 0.35);
+  color: var(--accent);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-.hdr-title { letter-spacing: 0.45em; font-size: clamp(16px, 2.6vw, 26px); }
-.hdr-clock { letter-spacing: 0.2em; font-size: clamp(14px, 2.2vw, 22px); }
+.hdr-title { letter-spacing: 0.35em; font-size: clamp(14px, 2.2vw, 24px); }
+.hdr-clock { letter-spacing: 0.2em; font-size: clamp(13px, 2vw, 21px); }
 
 .colheads {
   display: flex;
   gap: 2px;
-  padding: 0 22px 8px;
+  padding: 0 18px 8px;
   color: var(--dim);
-  font-size: clamp(8px, 1.2vw, 12px);
-  letter-spacing: 0.18em;
+  font-size: clamp(7px, 1vw, 11px);
+  letter-spacing: 0.14em;
 }
 
 .colheads span { overflow: hidden; white-space: nowrap; }
 
 .board {
   background: var(--board);
-  border: 1px solid #23282f;
+  border: 1px solid var(--edge);
   border-radius: 12px;
-  padding: 18px 20px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 6px;
   box-shadow:
-    inset 0 0 70px rgba(0, 0, 0, 0.65),
-    0 24px 70px rgba(0, 0, 0, 0.55);
+    inset 0 0 70px rgba(0, 0, 0, 0.35),
+    0 24px 70px rgba(0, 0, 0, 0.35);
 }
 
 .row { display: flex; gap: 2px; }
@@ -72,8 +134,8 @@ body {
   align-items: center;
   justify-content: center;
   background: linear-gradient(var(--cell-top), var(--cell-bot));
-  border-radius: 3px;
-  font-size: clamp(7px, 1.75vw, 19px);
+  border-radius: 2px;
+  font-size: clamp(5px, 1.05vw, 14px);
   font-weight: 600;
   position: relative;
   overflow: hidden;
@@ -88,16 +150,43 @@ body {
   right: 0;
   top: 50%;
   height: 1px;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--seam);
 }
 
-.gap { margin-left: 1.7%; }
+.gap { margin-left: 1.1%; }
 
-.cell.flip { animation: flap 70ms ease-out; }
+/* two identical animations under different names, so the script can
+   restart the flip by alternating classes instead of forcing a reflow */
+.cell.flip-a { animation: flap-a 70ms ease-out; }
+.cell.flip-b { animation: flap-b 70ms ease-out; }
 
-@keyframes flap {
+@keyframes flap-a {
   0%   { transform: scaleY(0.15); filter: brightness(1.7); }
   100% { transform: scaleY(1); }
+}
+
+@keyframes flap-b {
+  0%   { transform: scaleY(0.15); filter: brightness(1.7); }
+  100% { transform: scaleY(1); }
+}
+
+/* remark status colours */
+.st-boarding  { color: var(--good); text-shadow: 0 0 9px color-mix(in srgb, var(--good) 40%, transparent); }
+.st-delayed   { color: var(--accent); text-shadow: 0 0 9px color-mix(in srgb, var(--accent) 40%, transparent); }
+.st-cancelled { color: var(--bad); text-shadow: 0 0 9px color-mix(in srgb, var(--bad) 40%, transparent); }
+.st-departed  { color: var(--dim); }
+.st-final     { color: var(--accent); animation: final-pulse 1.2s ease-in-out infinite; }
+
+@keyframes final-pulse {
+  50% {
+    color: color-mix(in srgb, var(--accent) 55%, var(--ink));
+    text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell.flip-a, .cell.flip-b { animation: none; }
+  .st-final { animation: none; }
 }
 
 .controls {
@@ -110,8 +199,8 @@ body {
 .controls input {
   flex: 1;
   min-width: 200px;
-  background: #14181d;
-  border: 1px solid #2a3038;
+  background: var(--input-bg);
+  border: 1px solid var(--ctl-edge);
   border-radius: 8px;
   color: var(--ink);
   font: inherit;
@@ -119,11 +208,12 @@ body {
   letter-spacing: 0.08em;
 }
 
-.controls input:focus { outline: 1px solid var(--amber); }
+.controls input:focus { outline: 1px solid var(--accent); }
 
-.controls button {
-  background: #1a1f26;
-  border: 1px solid #2a3038;
+.controls button,
+.controls select {
+  background: var(--ctl);
+  border: 1px solid var(--ctl-edge);
   border-radius: 8px;
   color: var(--ink);
   font: inherit;
@@ -132,4 +222,10 @@ body {
   letter-spacing: 0.06em;
 }
 
-.controls button:hover { border-color: var(--amber); color: var(--amber); }
+.controls button:hover,
+.controls select:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ambient display: in fullscreen the controls fade away until hovered */
+:fullscreen .controls { opacity: 0.15; transition: opacity 0.4s; }
+:fullscreen .controls:hover,
+:fullscreen .controls:focus-within { opacity: 1; }
