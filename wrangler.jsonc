@@ -1,0 +1,8 @@
+{
+  // Cloudflare Workers config: no code, just serve the repo as static assets.
+  "name": "build-weekend",
+  "compatibility_date": "2026-08-08",
+  "assets": {
+    "directory": "."
+  }
+}
