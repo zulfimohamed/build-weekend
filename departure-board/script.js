@@ -31,39 +31,44 @@ const GLOBAL_AIRLINES = [
   ['QF', 'QANTAS'],
 ];
 
-const COUNTRIES = {
-  'SINGAPORE': {
-    origins: ['SINGAPORE'],
-    airlines: [['SQ', 'SINGAPORE AIR'], ['TR', 'SCOOT']],
-  },
-  'MALAYSIA': {
-    origins: ['KUALA LUMPUR', 'PENANG', 'JOHOR BAHRU', 'KUCHING', 'LANGKAWI'],
-    airlines: [['MH', 'MALAYSIA AIR'], ['AK', 'AIRASIA'], ['OD', 'BATIK AIR']],
-  },
-  'JAPAN': {
-    origins: ['TOKYO', 'OSAKA', 'NAGOYA', 'SAPPORO', 'FUKUOKA', 'OKINAWA'],
-    airlines: [['JL', 'JAPAN AIR'], ['NH', 'ANA'], ['MM', 'PEACH']],
-  },
-  'INDIA': {
-    origins: ['MUMBAI', 'DELHI', 'BANGALORE', 'CHENNAI', 'HYDERABAD', 'KOCHI'],
-    airlines: [['AI', 'AIR INDIA'], ['6E', 'INDIGO'], ['UK', 'VISTARA']],
-  },
-  'UAE': {
-    origins: ['DUBAI', 'ABU DHABI', 'SHARJAH'],
-    airlines: [['EK', 'EMIRATES'], ['EY', 'ETIHAD'], ['FZ', 'FLYDUBAI']],
-  },
-  'TURKEY': {
-    origins: ['ISTANBUL', 'ANKARA', 'IZMIR', 'ANTALYA'],
-    airlines: [['TK', 'TURKISH AIR'], ['PC', 'PEGASUS']],
-  },
-  'UK': {
-    origins: ['LONDON', 'MANCHESTER', 'EDINBURGH', 'GLASGOW', 'BIRMINGHAM'],
-    airlines: [['BA', 'BRITISH AIR'], ['VS', 'VIRGIN ATL'], ['U2', 'EASYJET']],
-  },
-  'USA': {
-    origins: ['NEW YORK', 'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'MIAMI', 'DALLAS'],
-    airlines: [['UA', 'UNITED'], ['AA', 'AMERICAN'], ['DL', 'DELTA'], ['WN', 'SOUTHWEST']],
-  },
+// every city the board can be set to, with the hub carriers based there
+const CITIES = {
+  'SINGAPORE':    [['SQ', 'SINGAPORE AIR'], ['TR', 'SCOOT']],
+  'KUALA LUMPUR': [['MH', 'MALAYSIA AIR'], ['AK', 'AIRASIA'], ['OD', 'BATIK AIR']],
+  'BANGKOK':      [['TG', 'THAI AIRWAYS'], ['AK', 'AIRASIA']],
+  'JAKARTA':      [['GA', 'GARUDA'], ['OD', 'BATIK AIR']],
+  'TOKYO':        [['JL', 'JAPAN AIR'], ['NH', 'ANA'], ['MM', 'PEACH']],
+  'OSAKA':        [['JL', 'JAPAN AIR'], ['NH', 'ANA'], ['MM', 'PEACH']],
+  'SEOUL':        [['KE', 'KOREAN AIR'], ['OZ', 'ASIANA']],
+  'TAIPEI':       [['BR', 'EVA AIR'], ['CI', 'CHINA AIR']],
+  'HONG KONG':    [['CX', 'CATHAY PAC'], ['UO', 'HK EXPRESS']],
+  'SHANGHAI':     [['MU', 'CHINA EASTERN'], ['FM', 'SHANGHAI AIR']],
+  'MUMBAI':       [['AI', 'AIR INDIA'], ['6E', 'INDIGO'], ['UK', 'VISTARA']],
+  'DELHI':        [['AI', 'AIR INDIA'], ['6E', 'INDIGO'], ['UK', 'VISTARA']],
+  'DOHA':         [['QR', 'QATAR AIRWAYS']],
+  'DUBAI':        [['EK', 'EMIRATES'], ['FZ', 'FLYDUBAI']],
+  'ISTANBUL':     [['TK', 'TURKISH AIR'], ['PC', 'PEGASUS']],
+  'LONDON':       [['BA', 'BRITISH AIR'], ['VS', 'VIRGIN ATL'], ['U2', 'EASYJET']],
+  'PARIS':        [['AF', 'AIR FRANCE'], ['U2', 'EASYJET']],
+  'AMSTERDAM':    [['KL', 'KLM'], ['HV', 'TRANSAVIA']],
+  'FRANKFURT':    [['LH', 'LUFTHANSA']],
+  'ZURICH':       [['LX', 'SWISS']],
+  'ROME':         [['AZ', 'ITA AIRWAYS'], ['U2', 'EASYJET']],
+  'MADRID':       [['IB', 'IBERIA'], ['UX', 'AIR EUROPA']],
+  'NEW YORK':     [['DL', 'DELTA'], ['AA', 'AMERICAN'], ['UA', 'UNITED'], ['B6', 'JETBLUE']],
+  'CHICAGO':      [['UA', 'UNITED'], ['AA', 'AMERICAN'], ['WN', 'SOUTHWEST']],
+  'LOS ANGELES':  [['UA', 'UNITED'], ['AA', 'AMERICAN'], ['DL', 'DELTA'], ['AS', 'ALASKA']],
+  'SEATTLE':      [['AS', 'ALASKA'], ['DL', 'DELTA']],
+  'TORONTO':      [['AC', 'AIR CANADA'], ['WS', 'WESTJET']],
+  'MEXICO CITY':  [['AM', 'AEROMEXICO'], ['Y4', 'VOLARIS']],
+  'SYDNEY':       [['QF', 'QANTAS'], ['JQ', 'JETSTAR'], ['VA', 'VIRGIN AUS']],
+  'MELBOURNE':    [['QF', 'QANTAS'], ['JQ', 'JETSTAR'], ['VA', 'VIRGIN AUS']],
+  'AUCKLAND':     [['NZ', 'AIR NZ'], ['JQ', 'JETSTAR']],
+  'NAIROBI':      [['KQ', 'KENYA AIRWAYS']],
+  'CAIRO':        [['MS', 'EGYPTAIR']],
+  'CAPE TOWN':    [['SA', 'SOUTH AFRICAN'], ['FA', 'FLYSAFAIR']],
+  'REYKJAVIK':    [['FI', 'ICELANDAIR']],
+  'HONOLULU':     [['HA', 'HAWAIIAN'], ['WN', 'SOUTHWEST']],
 };
 
 // which region each destination belongs to, for matching airlines to routes
@@ -119,6 +124,32 @@ const AIRLINE_ROUTES = {
   AA: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
   DL: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
   WN: ['AMERICAS'],
+  OZ: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  BR: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  CI: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  UO: ['ASIA'],
+  MU: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  FM: ['ASIA'],
+  HV: ['EUROPE'],
+  LX: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'AFRICA'],
+  AZ: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'AFRICA'],
+  IB: ['EUROPE', 'AMERICAS'],
+  UX: ['EUROPE', 'AMERICAS'],
+  B6: ['EUROPE', 'AMERICAS'],
+  AS: ['AMERICAS'],
+  AC: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  WS: ['EUROPE', 'AMERICAS'],
+  AM: ['ASIA', 'EUROPE', 'AMERICAS'],
+  Y4: ['AMERICAS'],
+  JQ: ['ASIA', 'OCEANIA'],
+  VA: ['ASIA', 'OCEANIA'],
+  NZ: ['ASIA', 'AMERICAS', 'OCEANIA'],
+  KQ: ['ASIA', 'MIDEAST', 'EUROPE', 'AFRICA'],
+  MS: ['ASIA', 'MIDEAST', 'EUROPE', 'AFRICA'],
+  SA: ['EUROPE', 'AFRICA'],
+  FA: ['AFRICA'],
+  FI: ['EUROPE', 'AMERICAS'],
+  HA: ['ASIA', 'AMERICAS', 'OCEANIA'],
 };
 
 function airlineServes(code, dest) {
@@ -127,29 +158,8 @@ function airlineServes(code, dest) {
 
 const REMARKS = ['ON TIME', 'ON TIME', 'ON TIME', 'BOARDING', 'BOARDING', 'GATE OPEN', 'DELAYED', 'FINAL CALL'];
 
-let country = localStorage.getItem('db-country');
-if (!COUNTRIES[country]) country = 'SINGAPORE';
-
-// how many destination cities the board draws from (0 = all of them)
-const CITY_CHOICES = [4, 6, 8, 12, 16, 20, 24];
-let cityCount = parseInt(localStorage.getItem('db-cities'), 10);
-if (!CITY_CHOICES.includes(cityCount)) cityCount = 0;
-
-let destPool = DESTINATIONS;
-
-function pickDestPool() {
-  if (!cityCount || cityCount >= DESTINATIONS.length) {
-    destPool = DESTINATIONS;
-    return;
-  }
-  const shuffled = DESTINATIONS.slice();
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  destPool = shuffled.slice(0, cityCount);
-}
-pickDestPool();
+let city = localStorage.getItem('db-city');
+if (!CITIES[city]) city = 'SINGAPORE';
 
 const boardEl = document.getElementById('board');
 const cells = [];      // cells[row][col] -> { el, current, target, nextAt, flipAlt }
@@ -256,13 +266,12 @@ const fmtTime = (mins) => {
 let flights = [];
 
 function newFlight(depMins) {
-  const c = COUNTRIES[country];
-  const origin = rand(c.origins);
-  const destChoices = destPool.filter((d) => d !== origin);
-  const dest = rand(destChoices.length ? destChoices : DESTINATIONS.filter((d) => d !== origin));
-  // national carriers fly twice as often as the global pool, but only
+  const origin = city;
+  const dest = rand(DESTINATIONS.filter((d) => d !== origin));
+  // hub carriers fly twice as often as the global pool, but only
   // airlines whose network covers the destination are eligible
-  const candidates = c.airlines.concat(c.airlines, GLOBAL_AIRLINES)
+  const hub = CITIES[city];
+  const candidates = hub.concat(hub, GLOBAL_AIRLINES)
     .filter(([code]) => airlineServes(code, dest));
   const [code, airline] = rand(candidates.length ? candidates : GLOBAL_AIRLINES);
   return {
@@ -387,8 +396,7 @@ setInterval(() => {
 // ---------- controls ----------
 
 const soundBtn = document.getElementById('sound');
-const countrySel = document.getElementById('country');
-const citiesSel = document.getElementById('cities');
+const citySel = document.getElementById('city');
 const themeSel = document.getElementById('theme');
 const marksBtn = document.getElementById('marks');
 const titleEl = document.getElementById('title');
@@ -396,7 +404,6 @@ const titleEl = document.getElementById('title');
 document.getElementById('addflight').addEventListener('click', addRandomFlight);
 
 document.getElementById('shuffle').addEventListener('click', () => {
-  pickDestPool();
   generateFlights();
   renderFlights(true);
 });
@@ -414,47 +421,25 @@ soundBtn.addEventListener('click', () => {
   soundBtn.setAttribute('aria-pressed', String(soundOn));
 });
 
-// ---------- country ----------
+// ---------- city ----------
 
 function updateTitle() {
-  titleEl.textContent = 'DEPARTURES · ' + country;
+  titleEl.textContent = 'DEPARTURES · ' + city;
 }
 
-for (const name of Object.keys(COUNTRIES)) {
+for (const name of Object.keys(CITIES).sort()) {
   const opt = document.createElement('option');
   opt.value = name;
   opt.textContent = name.toLowerCase();
-  countrySel.appendChild(opt);
+  citySel.appendChild(opt);
 }
-countrySel.value = country;
+citySel.value = city;
 updateTitle();
 
-countrySel.addEventListener('change', () => {
-  country = countrySel.value;
-  localStorage.setItem('db-country', country);
+citySel.addEventListener('change', () => {
+  city = citySel.value;
+  localStorage.setItem('db-city', city);
   updateTitle();
-  generateFlights();
-  renderFlights(true);
-});
-
-// ---------- number of cities ----------
-
-const allOpt = document.createElement('option');
-allOpt.value = '0';
-allOpt.textContent = 'all cities';
-citiesSel.appendChild(allOpt);
-for (const n of CITY_CHOICES) {
-  const opt = document.createElement('option');
-  opt.value = String(n);
-  opt.textContent = n + ' cities';
-  citiesSel.appendChild(opt);
-}
-citiesSel.value = String(cityCount);
-
-citiesSel.addEventListener('change', () => {
-  cityCount = parseInt(citiesSel.value, 10) || 0;
-  localStorage.setItem('db-cities', String(cityCount));
-  pickDestPool();
   generateFlights();
   renderFlights(true);
 });
