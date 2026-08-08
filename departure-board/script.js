@@ -66,10 +66,90 @@ const COUNTRIES = {
   },
 };
 
+// which region each destination belongs to, for matching airlines to routes
+const REGIONS = {
+  ASIA: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA',
+         'SEOUL', 'TAIPEI', 'HONG KONG', 'SHANGHAI', 'MUMBAI', 'DELHI'],
+  MIDEAST: ['DOHA', 'DUBAI', 'ISTANBUL'],
+  EUROPE: ['LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME',
+           'MADRID', 'REYKJAVIK'],
+  AMERICAS: ['NEW YORK', 'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'TORONTO',
+             'MEXICO CITY', 'HONOLULU'],
+  OCEANIA: ['SYDNEY', 'MELBOURNE', 'AUCKLAND'],
+  AFRICA: ['NAIROBI', 'CAIRO', 'CAPE TOWN'],
+};
+
+const DEST_REGION = {};
+for (const [region, cities] of Object.entries(REGIONS)) {
+  for (const city of cities) DEST_REGION[city] = region;
+}
+
+// regions each airline flies to — a row only pairs an airline with a
+// destination on its network
+const AIRLINE_ROUTES = {
+  EK: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'OCEANIA', 'AFRICA'],
+  QR: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'OCEANIA', 'AFRICA'],
+  LH: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'AFRICA'],
+  KL: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'AFRICA'],
+  AF: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'AFRICA'],
+  CX: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  TG: ['ASIA', 'EUROPE', 'OCEANIA'],
+  GA: ['ASIA', 'MIDEAST', 'EUROPE', 'OCEANIA'],
+  KE: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  QF: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  SQ: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'OCEANIA', 'AFRICA'],
+  TR: ['ASIA', 'OCEANIA'],
+  MH: ['ASIA', 'MIDEAST', 'EUROPE', 'OCEANIA'],
+  AK: ['ASIA'],
+  OD: ['ASIA', 'OCEANIA'],
+  JL: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  NH: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  MM: ['ASIA'],
+  AI: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  '6E': ['ASIA', 'MIDEAST'],
+  UK: ['ASIA', 'MIDEAST', 'EUROPE'],
+  EY: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'OCEANIA', 'AFRICA'],
+  FZ: ['ASIA', 'MIDEAST', 'EUROPE', 'AFRICA'],
+  TK: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'OCEANIA', 'AFRICA'],
+  PC: ['MIDEAST', 'EUROPE'],
+  BA: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'AFRICA'],
+  VS: ['ASIA', 'AMERICAS', 'AFRICA'],
+  U2: ['EUROPE'],
+  UA: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  AA: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  DL: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
+  WN: ['AMERICAS'],
+};
+
+function airlineServes(code, dest) {
+  return (AIRLINE_ROUTES[code] || []).includes(DEST_REGION[dest]);
+}
+
 const REMARKS = ['ON TIME', 'ON TIME', 'ON TIME', 'BOARDING', 'BOARDING', 'GATE OPEN', 'DELAYED', 'FINAL CALL'];
 
 let country = localStorage.getItem('db-country');
 if (!COUNTRIES[country]) country = 'SINGAPORE';
+
+// how many destination cities the board draws from (0 = all of them)
+const CITY_CHOICES = [4, 6, 8, 12, 16, 20, 24];
+let cityCount = parseInt(localStorage.getItem('db-cities'), 10);
+if (!CITY_CHOICES.includes(cityCount)) cityCount = 0;
+
+let destPool = DESTINATIONS;
+
+function pickDestPool() {
+  if (!cityCount || cityCount >= DESTINATIONS.length) {
+    destPool = DESTINATIONS;
+    return;
+  }
+  const shuffled = DESTINATIONS.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  destPool = shuffled.slice(0, cityCount);
+}
+pickDestPool();
 
 const boardEl = document.getElementById('board');
 const cells = [];      // cells[row][col] -> { el, current, target, nextAt, flipAlt }
@@ -81,6 +161,7 @@ for (const f of FIELDS) {
   const span = document.createElement('span');
   span.textContent = f.label;
   span.style.flex = String(f.width);
+  span.classList.add('f-' + f.label.toLowerCase());
   if (f !== FIELDS[0]) span.classList.add('gap');
   colheads.appendChild(span);
 }
@@ -92,7 +173,7 @@ for (let r = 0; r < ROWS; r++) {
   for (const f of FIELDS) {
     for (let i = 0; i < f.width; i++) {
       const el = document.createElement('span');
-      el.className = 'cell';
+      el.className = 'cell f-' + f.label.toLowerCase();
       if (i === 0 && f !== FIELDS[0]) el.classList.add('gap');
       el.textContent = ' ';
       rowEl.appendChild(el);
@@ -155,10 +236,12 @@ const REMARK_CLASS = {
 
 function setRowStatus(r, remark) {
   const cls = REMARK_CLASS[remark];
+  const len = remark ? remark.length : 0;
   for (let c = REMARK_START; c < ROW_WIDTH; c++) {
     const el = cells[r][c].el;
     el.classList.remove(...STATUS_CLASSES);
-    if (cls) el.classList.add(cls);
+    // only the cells the remark occupies, so marks don't underline blanks
+    if (cls && c - REMARK_START < len) el.classList.add(cls);
   }
 }
 
@@ -175,10 +258,13 @@ let flights = [];
 function newFlight(depMins) {
   const c = COUNTRIES[country];
   const origin = rand(c.origins);
-  let dest = rand(DESTINATIONS);
-  while (dest === origin) dest = rand(DESTINATIONS);
-  // national carriers fly twice as often as the global pool
-  const [code, airline] = rand(c.airlines.concat(c.airlines, GLOBAL_AIRLINES));
+  const destChoices = destPool.filter((d) => d !== origin);
+  const dest = rand(destChoices.length ? destChoices : DESTINATIONS.filter((d) => d !== origin));
+  // national carriers fly twice as often as the global pool, but only
+  // airlines whose network covers the destination are eligible
+  const candidates = c.airlines.concat(c.airlines, GLOBAL_AIRLINES)
+    .filter(([code]) => airlineServes(code, dest));
+  const [code, airline] = rand(candidates.length ? candidates : GLOBAL_AIRLINES);
   return {
     dep: depMins,
     origin,
@@ -227,10 +313,7 @@ const NEXT_REMARK = {
   'FINAL CALL': 'DEPARTED',
 };
 
-let messageUntil = 0;
-
 function tickFlights() {
-  if (Date.now() < messageUntil) return;
   const r = Math.floor(Math.random() * ROWS);
   const f = flights[r];
   if (f.remark === 'DEPARTED' || f.remark === 'CANCELLED') {
@@ -248,34 +331,23 @@ function tickFlights() {
   setRowStatus(r, flights[r].remark);
 }
 
-// ---------- message mode ----------
+// ---------- add a random flight ----------
 
-function showMessage(text) {
-  const clean = text.toUpperCase().split('').filter((c) => CHARSET.includes(c)).join('');
-  if (!clean.trim()) return;
-
-  const lines = [];
-  let line = '';
-  for (const word of clean.split(' ')) {
-    if (!line.length) line = word;
-    else if (line.length + 1 + word.length <= ROW_WIDTH) line += ' ' + word;
-    else { lines.push(line); line = word; }
-    if (lines.length === ROWS) break;
+function addRandomFlight() {
+  const first = nowMins() + 5;
+  const latest = Math.max(...flights.map((f) => f.dep), first);
+  const span = Math.max(latest - first, 1);
+  const f = newFlight(first + Math.floor(Math.random() * span));
+  let idx = flights.findIndex((x) => x.dep >= f.dep);
+  if (idx === -1) idx = ROWS - 1;
+  flights.splice(idx, 0, f);
+  flights.length = ROWS; // the last flight drops off to make room
+  for (let r = idx; r < ROWS; r++) {
+    setTimeout(() => {
+      setRow(r, flightToText(flights[r]));
+      setRowStatus(r, flights[r].remark);
+    }, (r - idx) * 60);
   }
-  if (line && lines.length < ROWS) lines.push(line);
-
-  const start = Math.floor((ROWS - lines.length) / 2);
-  for (let r = 0; r < ROWS; r++) {
-    const text = lines[r - start] || '';
-    const pad = Math.floor((ROW_WIDTH - text.length) / 2);
-    setRow(r, ' '.repeat(Math.max(pad, 0)) + text);
-    setRowStatus(r, null);
-  }
-
-  messageUntil = Date.now() + 9000;
-  setTimeout(() => {
-    if (Date.now() >= messageUntil) renderFlights(true);
-  }, 9200);
 }
 
 // ---------- sound ----------
@@ -314,30 +386,17 @@ setInterval(() => {
 
 // ---------- controls ----------
 
-const msgInput = document.getElementById('msg');
 const soundBtn = document.getElementById('sound');
 const countrySel = document.getElementById('country');
+const citiesSel = document.getElementById('cities');
 const themeSel = document.getElementById('theme');
+const marksBtn = document.getElementById('marks');
 const titleEl = document.getElementById('title');
 
-function sendMessage() {
-  const text = msgInput.value;
-  if (!text.trim()) return;
-  showMessage(text);
-  // make the message shareable: /?msg=... shows it on load
-  const url = new URL(location.href);
-  url.searchParams.set('msg', text);
-  history.replaceState(null, '', url);
-  msgInput.value = '';
-}
-
-document.getElementById('send').addEventListener('click', sendMessage);
-msgInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') sendMessage();
-});
+document.getElementById('addflight').addEventListener('click', addRandomFlight);
 
 document.getElementById('shuffle').addEventListener('click', () => {
-  messageUntil = 0;
+  pickDestPool();
   generateFlights();
   renderFlights(true);
 });
@@ -374,7 +433,28 @@ countrySel.addEventListener('change', () => {
   country = countrySel.value;
   localStorage.setItem('db-country', country);
   updateTitle();
-  messageUntil = 0;
+  generateFlights();
+  renderFlights(true);
+});
+
+// ---------- number of cities ----------
+
+const allOpt = document.createElement('option');
+allOpt.value = '0';
+allOpt.textContent = 'all cities';
+citiesSel.appendChild(allOpt);
+for (const n of CITY_CHOICES) {
+  const opt = document.createElement('option');
+  opt.value = String(n);
+  opt.textContent = n + ' cities';
+  citiesSel.appendChild(opt);
+}
+citiesSel.value = String(cityCount);
+
+citiesSel.addEventListener('change', () => {
+  cityCount = parseInt(citiesSel.value, 10) || 0;
+  localStorage.setItem('db-cities', String(cityCount));
+  pickDestPool();
   generateFlights();
   renderFlights(true);
 });
@@ -385,6 +465,11 @@ const THEMES = ['classic', 'phosphor', 'daylight', 'indigo'];
 let theme = localStorage.getItem('db-theme');
 if (!THEMES.includes(theme)) theme = 'classic';
 
+function applyTheme() {
+  for (const t of THEMES) document.body.classList.remove('theme-' + t);
+  if (theme !== 'classic') document.body.classList.add('theme-' + theme);
+}
+
 for (const name of THEMES) {
   const opt = document.createElement('option');
   opt.value = name;
@@ -392,12 +477,31 @@ for (const name of THEMES) {
   themeSel.appendChild(opt);
 }
 themeSel.value = theme;
-document.body.className = theme === 'classic' ? '' : 'theme-' + theme;
+applyTheme();
 
 themeSel.addEventListener('change', () => {
   theme = themeSel.value;
   localStorage.setItem('db-theme', theme);
-  document.body.className = theme === 'classic' ? '' : 'theme-' + theme;
+  applyTheme();
+});
+
+// ---------- status marks (accessibility, on by default) ----------
+
+// pattern-coded underlines on highlighted remarks, so status reads
+// without relying on colour alone
+let marksOn = localStorage.getItem('db-marks') !== 'off';
+
+function applyMarks() {
+  document.body.classList.toggle('a11y', marksOn);
+  marksBtn.setAttribute('aria-pressed', String(marksOn));
+  marksBtn.textContent = (marksOn ? '◉' : '○') + ' marks';
+}
+applyMarks();
+
+marksBtn.addEventListener('click', () => {
+  marksOn = !marksOn;
+  localStorage.setItem('db-marks', marksOn ? 'on' : 'off');
+  applyMarks();
 });
 
 // ---------- clock ----------
@@ -417,6 +521,3 @@ setInterval(updateClock, 1000);
 generateFlights();
 renderFlights(true);
 setInterval(tickFlights, 5500);
-
-const sharedMsg = new URLSearchParams(location.search).get('msg');
-if (sharedMsg) setTimeout(() => showMessage(sharedMsg), 1400);
