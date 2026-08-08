@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- split-flap tile -->
+  <rect width="32" height="32" rx="7" fill="#0f1216"/>
+  <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="none" stroke="#2a3038"/>
+  <!-- aircraft, planform view -->
+  <path fill="#ffb84d" d="M16 3
+    Q17.6 4.2 17.6 11
+    L29 19 L29 21.4 L17.6 17.4
+    L17.6 23.2 L21.6 26.6 L21.6 28.2 L16 26.4
+    L10.4 28.2 L10.4 26.6 L14.4 23.2
+    L14.4 17.4 L3 21.4 L3 19 L14.4 11
+    Q14.4 4.2 16 3 Z"/>
+  <!-- flap seam -->
+  <rect y="15.6" width="32" height="0.9" fill="#0f1216" opacity="0.85"/>
+</svg>
