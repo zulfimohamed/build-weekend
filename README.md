@@ -18,8 +18,20 @@ a weekend, it belongs in this repo.
 
 ## Projects
 
-Nothing here yet — this space will fill up as weekend builds land. Each project
-will live in its own folder with a short note on what it is and how to run it.
+Each project lives in its own folder with a short note on what it is and how
+to run it. Everything is plain HTML/CSS/JS — open the folder's `index.html`
+in a browser and it just works.
+
+- **[departure-board](departure-board/)** — a split-flap airport departure
+  board that clatters out an invented flight schedule, drifts the remarks
+  like a real board, and displays any message you type at it. Sound included.
+
+### Viewing them in a browser
+
+Locally: open the project's `index.html`. Live on the internet: this repo is
+meant to be served with GitHub Pages (Settings → Pages → deploy from `main`,
+root folder). Once enabled, every project is a live site at
+`https://zulfimohamed.github.io/build-weekend/<project-folder>/`.
 
 ## License — what happens if someone copies this?
 

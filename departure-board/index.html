@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Departure Board</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="hall">
+  <header class="board-header">
+    <span class="hdr-title">DEPARTURES</span>
+    <span class="hdr-clock" id="clock">--:--</span>
+  </header>
+
+  <div class="colheads" id="colheads"></div>
+  <div class="board" id="board" aria-label="split-flap departure board"></div>
+
+  <footer class="controls">
+    <input id="msg" maxlength="72" placeholder="type a message for the board…" autocomplete="off">
+    <button id="send">display</button>
+    <button id="shuffle">shuffle flights</button>
+    <button id="sound" aria-pressed="false">&#128263; sound</button>
+  </footer>
+</main>
+<script src="script.js"></script>
+</body>
+</html>
