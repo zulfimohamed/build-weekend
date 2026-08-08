@@ -416,6 +416,7 @@ const WAYPOINTS = [
 
 const G = {
   W: 100, H: 62,
+  y0: 12, y1: 56,            // the band actually drawn in, cropped of dead space
   rwyY: 50, rwyX0: 8, rwyX1: 92,
   twyY: 40,
   gateY: 29,
@@ -741,11 +742,16 @@ const groundCanvas = document.getElementById('groundc');
 const gtx = groundCanvas.getContext('2d');
 
 let W = 0, DPR = 1, cx = 0, cy = 0, scopeR = 0;
-let GW = 0, GH = 0, gscale = 1, gox = 0, goy = 0;
+let GW = 0, GH = 0, gscale = 1, gox = 0, goy = 0, grot = false;
 
 const pxPerNm = () => scopeR / range;
 const toScreen = (p) => ({ x: cx + p.x * pxPerNm(), y: cy - p.y * pxPerNm() });
-const gToScreen = (x, y) => ({ x: gox + x * gscale, y: goy + y * gscale });
+
+// on a tall, narrow pane the airport is turned a quarter turn so the
+// runway runs down the screen and the drawing comes out bigger
+const gToScreen = (x, y) => (grot
+  ? { x: gox + (G.y1 - y) * gscale, y: goy + x * gscale }
+  : { x: gox + x * gscale, y: goy + (y - G.y0) * gscale });
 
 // a little airliner silhouette, nose up, rotated to heading
 function drawPlaneIcon(g, x, y, hdgDeg, scale, fill) {
@@ -1056,7 +1062,8 @@ function drawAirTraffic() {
 
     if (showLabels || isSel) {
       const h = hash(f.callsign);
-      const side = h % 2 ? 1 : -1;
+      // labels point inward, so nothing gets cut off at the tube's edge
+      const side = s.x > cx ? -1 : 1;
       const fl = String(Math.round(shown.alt / 100)).padStart(3, '0');
       const arrow = f.kind === 'ARR' ? '↓' : f.kind === 'DEP' && shown.alt < f.cruise ? '↑' : ' ';
       const spd = String(Math.round(shown.speed / 10)).padStart(2, '0');
@@ -1086,14 +1093,18 @@ function drawGround() {
   gtx.fillRect(0, 0, GW, GH);
 
   const u = (n) => n * gscale;
+  // a rect in airport units, drawn correctly whichever way the map faces
+  const gRect = (x0, y0, x1, y1) => {
+    const a = gToScreen(x0, y0);
+    const b = gToScreen(x1, y1);
+    gtx.fillRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+  };
 
   // apron + terminal
   gtx.fillStyle = '#1d2229';
-  const ap0 = gToScreen(24, G.gateY - 3);
-  gtx.fillRect(ap0.x, ap0.y, u(52), u(G.twyY - G.gateY + 6));
+  gRect(24, G.gateY - 3, 76, G.twyY + 3);
   gtx.fillStyle = '#2b313a';
-  const t0 = gToScreen(26, 18);
-  gtx.fillRect(t0.x, t0.y, u(48), u(8));
+  gRect(26, 18, 74, 26);
 
   // taxiways
   gtx.strokeStyle = '#3a414c';
@@ -1142,35 +1153,63 @@ function drawGround() {
   gtx.stroke();
   gtx.setLineDash([]);
 
-  // labels
+  // labels. anything already written claims its box, so nothing overlaps
+  const taken = [];
+  const fits = (x, y, w, h) => {
+    const box = { x0: x, y0: y - h, x1: x + w, y1: y };
+    for (const t of taken) {
+      if (box.x0 < t.x1 && box.x1 > t.x0 && box.y0 < t.y1 && box.y1 > t.y0) return false;
+    }
+    taken.push(box);
+    return true;
+  };
+
+  const labelPx = Math.max(10, u(1.7));
+  gtx.font = `${labelPx}px ui-monospace, Menlo, monospace`;
   gtx.fillStyle = 'rgba(236,231,217,0.75)';
-  gtx.font = `${Math.max(9, u(1.7))}px ui-monospace, Menlo, monospace`;
-  gtx.fillText(`RWY ${rwyLabel()}`, r0.x, r0.y - u(3));
+  const rwyTxt = `RWY ${rwyLabel()}`;
+  const rwyPos = grot
+    ? { x: r0.x + u(2.6), y: r0.y + labelPx }
+    : { x: r0.x, y: r0.y - u(3) };
+  fits(rwyPos.x, rwyPos.y, gtx.measureText(rwyTxt).width, labelPx);
+  gtx.fillText(rwyTxt, rwyPos.x, rwyPos.y);
+
   for (const gate of G.gates) {
-    const s = gToScreen(gate.x, G.gateY - 1.6);
-    gtx.textAlign = 'center';
+    const s = gToScreen(gate.x, G.gateY - (grot ? 0 : 1.6));
+    const gx = grot ? s.x - u(5) : s.x;
     gtx.fillStyle = gate.busy ? 'rgba(255,184,77,0.8)' : 'rgba(111,118,128,0.9)';
-    gtx.fillText(gate.id, s.x, s.y);
+    const w = gtx.measureText(gate.id).width;
+    if (fits(gx - w / 2, s.y, w, labelPx)) {
+      gtx.textAlign = 'center';
+      gtx.fillText(gate.id, gx, s.y);
+      gtx.textAlign = 'left';
+    }
   }
-  gtx.textAlign = 'left';
 
   // aircraft
-  gtx.font = `${Math.max(9, u(1.6))}px ui-monospace, Menlo, monospace`;
   for (const f of flights) {
     if (f.goneAt || !GROUND_STATES.has(f.state) || !f.gnd) continue;
     const s = gToScreen(f.gnd.x, f.gnd.y);
     const isSel = f === selected;
     const color = isSel ? '#ffb84d' : '#39e07a';
-    drawPlaneIcon(gtx, s.x, s.y, f.gnd.hdg, u(0.32) * (WIDEBODIES.has(f.type) ? 1.35 : 1), color);
-    if (isSel || showLabels) {
-      gtx.fillStyle = isSel ? 'rgba(255,184,77,0.9)' : 'rgba(57,224,122,0.7)';
-      gtx.fillText(f.callsign, s.x + u(2.6), s.y - u(1.2));
-    }
+    const hdg = f.gnd.hdg + (grot ? 90 : 0);
+    drawPlaneIcon(gtx, s.x, s.y, hdg, Math.max(0.6, u(0.32)) * (WIDEBODIES.has(f.type) ? 1.35 : 1), color);
     if (isSel) {
       gtx.strokeStyle = 'rgba(255,184,77,0.8)';
+      gtx.lineWidth = 1.5;
       gtx.beginPath();
-      gtx.arc(s.x, s.y, u(3), 0, Math.PI * 2);
+      gtx.arc(s.x, s.y, Math.max(12, u(3)), 0, Math.PI * 2);
       gtx.stroke();
+    }
+    if (isSel || showLabels) {
+      const lx = s.x + u(2.6);
+      const ly = s.y - u(1.2);
+      const w = gtx.measureText(f.callsign).width;
+      // the selected flight always gets its label; the rest yield
+      if (isSel || fits(lx, ly, w, labelPx)) {
+        gtx.fillStyle = isSel ? 'rgba(255,184,77,0.95)' : 'rgba(57,224,122,0.7)';
+        gtx.fillText(f.callsign, lx, ly);
+      }
     }
   }
 }
@@ -1204,7 +1243,7 @@ function frame(ts) {
     if (lines.length) radio(lines);
   }
 
-  if (tab === 'app') {
+  if (tab === 'app' && staticLayer) {
     ctx.clearRect(0, 0, W, W);
     ctx.drawImage(staticLayer, 0, 0, W, W);
     if (showWx) drawWeather(simDt);
@@ -1603,7 +1642,7 @@ document.querySelectorAll('.tab').forEach((btn) => {
     document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('active', p.id === 'pane-' + tab));
     document.body.className = 'tab-' + tab;
     if (tab === 'time') renderTimetable();
-    resize();
+    requestAnimationFrame(resize);
   });
 });
 
@@ -1703,10 +1742,14 @@ setInterval(updateClock, 1000);
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
 
-  // hidden panes report a zero rect — keep their last real geometry
-  const sRect = scopeWrap.getBoundingClientRect();
+  // hidden panes report a zero rect — keep their last real geometry.
+  // measure the pane, not the tube, so the tube's own size can't feed back
+  const pane = document.getElementById('pane-app');
+  const sRect = pane.getBoundingClientRect();
   if (sRect.width > 50 && sRect.height > 50) {
-    W = Math.min(sRect.width, sRect.height);
+    W = Math.floor(Math.min(sRect.width, sRect.height));
+    scopeWrap.style.width = W + 'px';
+    scopeWrap.style.height = W + 'px';
     scopeCanvas.width = Math.ceil(W * DPR);
     scopeCanvas.height = Math.ceil(W * DPR);
     scopeCanvas.style.width = W + 'px';
@@ -1727,9 +1770,16 @@ function resize() {
     groundCanvas.style.width = GW + 'px';
     groundCanvas.style.height = GH + 'px';
     gtx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    gscale = Math.min(GW / G.W, GH / G.H);
-    gox = (GW - G.W * gscale) / 2;
-    goy = (GH - G.H * gscale) / 2;
+    // draw it whichever way round comes out larger
+    const band = G.y1 - G.y0;
+    const flat = Math.min(GW / G.W, GH / band);
+    const turned = Math.min(GW / band, GH / G.W);
+    grot = turned > flat;
+    gscale = (grot ? turned : flat) * 0.96;
+    const spanX = (grot ? band : G.W) * gscale;
+    const spanY = (grot ? G.W : band) * gscale;
+    gox = (GW - spanX) / 2;
+    goy = (GH - spanY) / 2;
   }
 }
 
@@ -1742,7 +1792,19 @@ if (['utc', 'hub', 'local'].includes(params.get('tz'))) tz = params.get('tz');
 tzSel.value = tz;
 setHub(startHub && ROUTES[startHub] ? startHub : 'KUL');
 
-window.addEventListener('resize', resize);
+// mobile browsers resize as their chrome slides away, and again on rotate
+let resizeQueued = false;
+function queueResize() {
+  if (resizeQueued) return;
+  resizeQueued = true;
+  requestAnimationFrame(() => {
+    resizeQueued = false;
+    resize();
+  });
+}
+window.addEventListener('resize', queueResize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 250));
+if (window.visualViewport) window.visualViewport.addEventListener('resize', queueResize);
 resize();
 renderSidebar();
 renderTimetable();
