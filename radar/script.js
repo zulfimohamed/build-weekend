@@ -16,7 +16,9 @@ let showWx = false;
 let view = 'live';           // 'live' (flight-radar vibe) | 'scope' (paint-on-beam)
 let tab = 'app';             // 'ground' | 'app' | 'time'
 
-const TIME_ACCEL = 8;        // the shift goes faster here
+let accel = 4;               // game speed: x1 / x2 / x4 / x8
+const SPEEDS = [1, 2, 4, 8];
+let tz = 'utc';              // 'utc' | 'hub' | 'local'
 const SWEEP_PERIOD = 4;      // seconds per sweep rotation
 const PHOS = '#39e07a';
 
@@ -136,8 +138,6 @@ const ROUTES = {
     ['TGW', 'Scoot', 'DPS', 'A320'],
     ['TGW', 'Scoot', 'PER', 'B788'],
     ['TGW', 'Scoot', 'TPE', 'B788'],
-    ['JSA', 'Jetstar Asia', 'BKK', 'A320'],
-    ['JSA', 'Jetstar Asia', 'MNL', 'A320'],
     ['MAS', 'Malaysia Airlines', 'KUL', 'B738'],
     ['AXM', 'AirAsia', 'KUL', 'A320'],
     ['QTR', 'Qatar Airways', 'DOH', 'A388'],
@@ -295,7 +295,6 @@ const BRANDS = {
   THY: ['#c90019', '#ffffff', 'TK'],
   BTK: ['#7a1f22', '#e8c66a', 'OD'],
   TGW: ['#ffcc00', '#1a1a1a', 'TR'],
-  JSA: ['#ff5115', '#1a1a1a', '3K'],
   QFA: ['#e40000', '#ffffff', 'QF'],
   KLM: ['#00a1de', '#ffffff', 'KL'],
   AFR: ['#002157', '#ffffff', 'AF'],
@@ -315,6 +314,29 @@ const BRANDS = {
   SKY: ['#1b4e9b', '#ffffff', 'BC'],
   ADO: ['#1e50a2', '#ffffff', 'HD'],
   HAL: ['#9b1b64', '#ffffff', 'HA'],
+};
+
+const HUB_TZ = {
+  KUL: 'Asia/Kuala_Lumpur',
+  SIN: 'Asia/Singapore',
+  DXB: 'Asia/Dubai',
+  LHR: 'Europe/London',
+  JFK: 'America/New_York',
+  HND: 'Asia/Tokyo',
+};
+
+// radiotelephony callsigns, for the chatter
+const TELEPHONY = {
+  MAS: 'Malaysian', AXM: 'Red Cap', XAX: 'Xanadu', SIA: 'Singapore',
+  SQC: 'Singcargo', UAE: 'Emirates', QTR: 'Qatari', ETD: 'Etihad',
+  CPA: 'Cathay', ANA: 'All Nippon', JAL: 'Japan Air', KAL: 'Korean Air',
+  THA: 'Thai', GIA: 'Indonesia', CES: 'China Eastern', UAL: 'United',
+  BAW: 'Speedbird', THY: 'Turkish', BTK: 'Batik', TGW: 'Scooter',
+  QFA: 'Qantas', KLM: 'KLM', AFR: 'Airfrans', VJC: 'VietJet',
+  AIC: 'Air India', FDB: 'Sky Dubai', VIR: 'Virgin', DLH: 'Lufthansa',
+  MSR: 'EgyptAir', SVA: 'Saudia', AAL: 'American', DAL: 'Delta',
+  JBU: 'JetBlue', ACA: 'Air Canada', IBE: 'Iberia', SWR: 'Swiss',
+  SKY: 'Skymark', ADO: 'Air Do', HAL: 'Hawaiian',
 };
 
 // probe once per airline for a real logo file; fall back to the word mark
@@ -464,7 +486,9 @@ function spawnDeparture() {
   f.assigned = (initialBearing(AIRPORTS[hub], AIRPORTS[f.city]) + jitter(8) + 360) % 360;
   f.cruise = 14000 + Math.random() * 12000;
   f.gnd = { x: gate.x, y: G.gateY, hdg: 0, wps: [], spd: 0, timer: 300 + Math.random() * 400 };
-  f.sched = Date.now() + ((f.gnd.timer + 150) / TIME_ACCEL) * 1000;
+  f.sched = Date.now() + ((f.gnd.timer + 150) / accel) * 1000;
+  f.squawk = String(1 + Math.floor(Math.random() * 7)) +
+    String(Math.floor(Math.random() * 8)) + String(Math.floor(Math.random() * 8)) + String(Math.floor(Math.random() * 8));
   return f;
 }
 
@@ -1158,7 +1182,7 @@ let last = 0;
 function frame(ts) {
   const dt = Math.min((ts - last) / 1000, 0.05);
   last = ts;
-  const simDt = dt * TIME_ACCEL;
+  const simDt = dt * accel;
 
   prevSweep = sweep;
   sweep = (sweep + (dt * Math.PI * 2) / SWEEP_PERIOD) % (Math.PI * 2);
@@ -1172,6 +1196,13 @@ function frame(ts) {
   }
   const now = performance.now();
   flights = flights.filter((f) => !f.goneAt || now < f.goneAt);
+
+  // the radio follows whoever you've selected through their phases
+  if (selected && !selected.goneAt && selected._chat !== selected.state) {
+    selected._chat = selected.state;
+    const lines = chatterFor(selected);
+    if (lines.length) radio(lines);
+  }
 
   if (tab === 'app') {
     ctx.clearRect(0, 0, W, W);
@@ -1258,10 +1289,21 @@ sidebar.addEventListener('click', (e) => {
 const ttArr = document.getElementById('tt-arr');
 const ttDep = document.getElementById('tt-dep');
 
-const fmtClock = (ms) => {
-  const d = new Date(ms);
-  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-};
+function tzZone() {
+  if (tz === 'utc') return 'UTC';
+  if (tz === 'hub') return HUB_TZ[hub];
+  return undefined; // device timezone
+}
+
+function fmtClock(ms, withSecs) {
+  const opts = { hour: '2-digit', minute: '2-digit', hour12: false };
+  if (withSecs) opts.second = '2-digit';
+  const zone = tzZone();
+  if (zone) opts.timeZone = zone;
+  return new Intl.DateTimeFormat('en-GB', opts).format(new Date(ms));
+}
+
+const tzSuffix = () => (tz === 'utc' ? 'Z' : tz === 'hub' ? ' ' + hub : ' LT');
 
 function ttStatus(f) {
   if (f.kind === 'ARR') {
@@ -1285,7 +1327,7 @@ function renderTimetable() {
     let when;
     if (f.kind === 'ARR') {
       when = AIR_STATES.has(f.state)
-        ? now + (distToGo(f) / Math.max(f.speed, 120)) * 3600000 / TIME_ACCEL
+        ? now + (distToGo(f) / Math.max(f.speed, 120)) * 3600000 / accel
         : now;
     } else {
       when = f.sched;
@@ -1363,6 +1405,137 @@ groundCanvas.addEventListener('click', (e) => {
   renderSidebar();
 });
 
+// ---------- radio chatter ----------
+
+const radioEl = document.getElementById('radio-text');
+
+const DIGIT_WORDS = { 0: 'zero', 1: 'one', 2: 'two', 3: 'tree', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'niner' };
+const speakDigits = (s) => String(s).split('').map((d) => DIGIT_WORDS[d] || d).join(' ');
+const NATO = { A: 'Alpha', B: 'Bravo', C: 'Charlie', D: 'Delta' };
+const speakGate = (g) => String(g || '').split('').map((c) => NATO[c] || DIGIT_WORDS[c] || c).join(' ');
+
+const rwyNum = () => String(Math.round(RWY_HDG / 10) % 36 || 36).padStart(2, '0');
+
+// each line: who it's from, display text, spoken text
+function chatterFor(f) {
+  const icao = f.callsign.slice(0, 3);
+  const num = f.callsign.slice(3);
+  const tel = TELEPHONY[icao] || f.airline || icao;
+  const cs = `${tel} ${num}`;
+  const csSp = `${tel} ${speakDigits(num)}`;
+  const rwy = rwyNum();
+  const rwySp = speakDigits(rwy);
+  const city = (AIRPORTS[f.city] ? AIRPORTS[f.city].name : f.city);
+  const gate = f.gate || 'Alpha 1';
+  const gateSp = speakGate(f.gate || 'A1');
+  const P = (t, s) => ({ who: f.callsign, t, s });
+  const C = (t, s) => ({ who: 'ATC', t, s });
+
+  switch (f.state) {
+    case 'descent': return [
+      P(`${hub} Approach, ${cs} with you, inbound from ${city}.`,
+        `${hub} approach, ${csSp} with you, inbound from ${city}.`),
+      C(`${cs}, radar contact, descend via the arrival, expect ILS runway ${rwy}.`,
+        `${csSp}, radar contact, descend via the arrival, expect I L S runway ${rwySp}.`),
+    ];
+    case 'base': return [
+      C(`${cs}, turn base, cleared ILS approach runway ${rwy}.`,
+        `${csSp}, turn base, cleared I L S approach runway ${rwySp}.`),
+      P(`Cleared ILS runway ${rwy}, ${cs}.`, `Cleared I L S runway ${rwySp}, ${csSp}.`),
+    ];
+    case 'final': return [
+      C(`${cs}, wind calm, runway ${rwy}, cleared to land.`,
+        `${csSp}, wind calm, runway ${rwySp}, cleared to land.`),
+      P(`Cleared to land runway ${rwy}, ${cs}.`, `Cleared to land runway ${rwySp}, ${csSp}.`),
+    ];
+    case 'rollout':
+    case 'taxi-in': return [
+      C(`${cs}, welcome to ${AIRPORTS[hub].name}. Taxi to gate ${gate} via Alpha.`,
+        `${csSp}, welcome to ${AIRPORTS[hub].name}. Taxi to gate ${gateSp} via alpha.`),
+      P(`Gate ${gate} via Alpha, ${cs}.`, `Gate ${gateSp} via alpha, ${csSp}.`),
+    ];
+    case 'boarding': return [
+      P(`Clearance, ${cs}, gate ${gate}, requesting IFR clearance to ${city}.`,
+        `Clearance, ${csSp}, gate ${gateSp}, requesting I F R clearance to ${city}.`),
+      C(`${cs}, cleared to ${city}, runway ${rwy}, squawk ${f.squawk || '4501'}.`,
+        `${csSp}, cleared to ${city}, runway ${rwySp}, squawk ${speakDigits(f.squawk || '4501')}.`),
+    ];
+    case 'pushback': return [
+      C(`${cs}, pushback approved.`, `${csSp}, pushback approved.`),
+      P(`Pushback approved, ${cs}.`, `Pushback approved, ${csSp}.`),
+    ];
+    case 'taxi-out': return [
+      C(`${cs}, taxi to holding point runway ${rwy} via Alpha.`,
+        `${csSp}, taxi to holding point runway ${rwySp} via alpha.`),
+      P(`Holding point runway ${rwy} via Alpha, ${cs}.`, `Holding point runway ${rwySp} via alpha, ${csSp}.`),
+    ];
+    case 'lineup': return [
+      C(`${cs}, line up and wait, runway ${rwy}.`, `${csSp}, line up and wait, runway ${rwySp}.`),
+      P(`Line up and wait ${rwy}, ${cs}.`, `Line up and wait ${rwySp}, ${csSp}.`),
+    ];
+    case 'takeoff': return [
+      C(`${cs}, wind calm, runway ${rwy}, cleared for takeoff.`,
+        `${csSp}, wind calm, runway ${rwySp}, cleared for takeoff.`),
+      P(`Cleared for takeoff runway ${rwy}, ${cs}.`, `Cleared for takeoff runway ${rwySp}, ${csSp}.`),
+    ];
+    case 'climb': return [
+      C(`${cs}, contact departure, good day.`, `${csSp}, contact departure, good day.`),
+      P(`Over to departure, so long, ${cs}.`, `Over to departure, so long, ${csSp}.`),
+    ];
+    case 'cruise': return [
+      P(`${hub} Control, ${cs}, flight level ${Math.round(f.alt / 100)}.`,
+        `${hub} control, ${csSp}, flight level ${speakDigits(Math.round(f.alt / 100))}.`),
+      C(`${cs}, radar contact.`, `${csSp}, radar contact.`),
+    ];
+    default: return [];
+  }
+}
+
+let radioSeq = 0;
+
+function radio(lines) {
+  const seq = ++radioSeq;
+  const step = (i) => {
+    if (seq !== radioSeq || i >= lines.length) return;
+    const l = lines[i];
+    radioEl.innerHTML = `<span class="who ${l.who === 'ATC' ? 'atc' : ''}">${l.who}</span> ${l.t}`;
+    radioEl.classList.remove('flash');
+    void radioEl.offsetWidth;
+    radioEl.classList.add('flash');
+    speak(l.s);
+    setTimeout(() => step(i + 1), 3600);
+  };
+  step(0);
+}
+
+function speak(text) {
+  if (!soundOn || !window.speechSynthesis) return;
+  squelch();
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.05;
+  u.pitch = 0.75;
+  u.volume = 0.9;
+  speechSynthesis.speak(u);
+}
+
+function squelch() {
+  if (!ac) return;
+  const len = Math.floor(ac.sampleRate * 0.05);
+  const buf = ac.createBuffer(1, len, ac.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const src = ac.createBufferSource();
+  src.buffer = buf;
+  const bp = ac.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 1800;
+  const g = ac.createGain();
+  g.gain.value = 0.08;
+  src.connect(bp).connect(g).connect(ac.destination);
+  src.start();
+}
+
 // ---------- sound ----------
 
 let ac = null, humGain = null;
@@ -1407,6 +1580,8 @@ function pip(freq, decay, vol) {
 // ---------- tabs & controls ----------
 
 const hubSel = document.getElementById('hub');
+const speedBtn = document.getElementById('speed');
+const tzSel = document.getElementById('tz');
 const rangeBtn = document.getElementById('range');
 const viewBtn = document.getElementById('viewmode');
 const labelsBtn = document.getElementById('labels');
@@ -1433,7 +1608,9 @@ document.querySelectorAll('.tab').forEach((btn) => {
 });
 
 function syncURL() {
-  try { history.replaceState(null, '', '?hub=' + hub); } catch (e) { /* file:// */ }
+  try {
+    history.replaceState(null, '', `?hub=${hub}&spd=${accel}&tz=${tz}`);
+  } catch (e) { /* file:// */ }
 }
 
 function setHub(code) {
@@ -1449,6 +1626,19 @@ function setHub(code) {
 
 hubSel.addEventListener('change', () => {
   setHub(hubSel.value);
+  syncURL();
+});
+
+speedBtn.addEventListener('click', () => {
+  accel = SPEEDS[(SPEEDS.indexOf(accel) + 1) % SPEEDS.length];
+  speedBtn.textContent = 'x' + accel;
+  syncURL();
+});
+
+tzSel.addEventListener('change', () => {
+  tz = tzSel.value;
+  updateClock();
+  renderTimetable();
   syncURL();
 });
 
@@ -1503,11 +1693,7 @@ window.addEventListener('keydown', (e) => {
 
 const clockEl = document.getElementById('clock');
 function updateClock() {
-  const d = new Date();
-  clockEl.textContent =
-    String(d.getUTCHours()).padStart(2, '0') + ':' +
-    String(d.getUTCMinutes()).padStart(2, '0') + ':' +
-    String(d.getUTCSeconds()).padStart(2, '0') + 'Z';
+  clockEl.textContent = fmtClock(Date.now(), true) + tzSuffix();
 }
 updateClock();
 setInterval(updateClock, 1000);
@@ -1549,6 +1735,11 @@ function resize() {
 
 const params = new URLSearchParams(location.search);
 const startHub = params.get('hub');
+const startSpd = parseInt(params.get('spd'), 10);
+if (SPEEDS.includes(startSpd)) accel = startSpd;
+speedBtn.textContent = 'x' + accel;
+if (['utc', 'hub', 'local'].includes(params.get('tz'))) tz = params.get('tz');
+tzSel.value = tz;
 setHub(startHub && ROUTES[startHub] ? startHub : 'KUL');
 
 window.addEventListener('resize', resize);

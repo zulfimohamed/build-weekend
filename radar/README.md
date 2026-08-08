@@ -27,10 +27,18 @@ traffic is the realistic part.
   GROUND, CLEARANCE, GATES, each with a frequency and status chips.
   Click a card, a blip, or a plane to select it anywhere.
 
+- **Radio** — select any flight and the radio follows it through its
+  phases with proper phraseology and radiotelephony callsigns
+  ("Speedbird", "Red Cap", "Scooter"…): clearance, pushback, taxi,
+  line-up, takeoff, approach, landing. With sound on, the calls are
+  spoken over a squelch click.
+- **Game speed** — x1 / x2 / x4 / x8, and a **timezone** picker for the
+  clock and timetable: UTC, airport local time, or your own.
+
 Works on phones and tablets — the layout stacks, the tap targets grow.
 
 Keyboard: `r` range · `v` view mode · `l` labels · `t` trails ·
-`w` weather · `s` sound. The hub is shareable: `?hub=SIN`.
+`w` weather · `s` sound. The view is shareable: `?hub=SIN&spd=2&tz=hub`.
 
 ## Run it
 
