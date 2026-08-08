@@ -92,7 +92,7 @@ body {
   text-shadow: 0 0 16px rgba(255, 184, 77, 0.35);
 }
 
-#hub {
+#hub, #tz, #speed {
   appearance: none;
   -webkit-appearance: none;
   background: var(--panel);
@@ -108,8 +108,49 @@ body {
   touch-action: manipulation;
 }
 
-#hub:hover, #hub:focus { border-color: var(--amber); outline: none; }
-#hub option { color: #22252a; background: #fff; }
+#hub:hover, #hub:focus, #tz:hover, #tz:focus, #speed:hover { border-color: var(--amber); outline: none; }
+#hub option, #tz option { color: #22252a; background: #fff; }
+
+/* ---------- radio ticker ---------- */
+
+#radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--board);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-height: 42px;
+  font-size: clamp(11px, 1.5vw, 13px);
+  color: var(--phos);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.radio-tag {
+  color: var(--dim);
+  letter-spacing: 0.24em;
+  font-size: 10px;
+  flex: none;
+}
+
+#radio-text { overflow: hidden; text-overflow: ellipsis; }
+
+#radio-text .who {
+  color: var(--amber);
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+#radio-text .who.atc { color: #7fd4e8; }
+
+#radio-text.flash { animation: radioflash 0.5s ease-out; }
+
+@keyframes radioflash {
+  0% { opacity: 0.2; }
+  100% { opacity: 1; }
+}
 
 /* ---------- layout ---------- */
 

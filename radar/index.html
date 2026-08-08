@@ -19,6 +19,12 @@
     </nav>
     <div class="top-right">
       <select id="hub" aria-label="airport"></select>
+      <button id="speed" aria-label="game speed">x4</button>
+      <select id="tz" aria-label="timezone">
+        <option value="utc">UTC</option>
+        <option value="hub">airport time</option>
+        <option value="local">my time</option>
+      </select>
       <span class="hdr-clock" id="clock">--:--:--Z</span>
     </div>
   </header>
@@ -45,6 +51,8 @@
           </div>
         </div>
       </div>
+
+      <div id="radio" aria-live="polite"><span class="radio-tag">RADIO</span><span id="radio-text">…monitoring</span></div>
 
       <footer class="controls" id="app-controls">
         <button id="range">RNG 40 NM</button>
