@@ -270,6 +270,73 @@ const ROUTES = {
 };
 
 const TRANSIT_AIRLINES = ['UAE', 'QTR', 'SIA', 'BAW', 'DLH', 'AFR', 'KLM', 'CPA', 'ANA', 'JAL', 'KAL', 'UAL', 'AAL', 'DAL', 'THA', 'MAS', 'ETD', 'THY'];
+
+// airline word marks in brand colors: [background, text, IATA code].
+// real logo files win when present — drop PNGs named by ICAO code
+// (MAS.png, UAE.png…) into radar/logos/ and they're picked up automatically.
+const BRANDS = {
+  MAS: ['#012a5c', '#ffffff', 'MH'],
+  AXM: ['#e60000', '#ffffff', 'AK'],
+  XAX: ['#e60000', '#ffffff', 'D7'],
+  SIA: ['#032b5a', '#f4b426', 'SQ'],
+  SQC: ['#032b5a', '#f4b426', 'SQ'],
+  UAE: ['#d71920', '#ffffff', 'EK'],
+  QTR: ['#5c0632', '#ffffff', 'QR'],
+  ETD: ['#c3922e', '#2d2926', 'EY'],
+  CPA: ['#006564', '#ffffff', 'CX'],
+  ANA: ['#003569', '#ffffff', 'NH'],
+  JAL: ['#b0000c', '#ffffff', 'JL'],
+  KAL: ['#1e6fb8', '#ffffff', 'KE'],
+  THA: ['#5a2d81', '#f2b826', 'TG'],
+  GIA: ['#175aa8', '#ffffff', 'GA'],
+  CES: ['#1a3c8f', '#ffffff', 'MU'],
+  UAL: ['#005daa', '#ffffff', 'UA'],
+  BAW: ['#01295c', '#ffffff', 'BA'],
+  THY: ['#c90019', '#ffffff', 'TK'],
+  BTK: ['#7a1f22', '#e8c66a', 'OD'],
+  TGW: ['#ffcc00', '#1a1a1a', 'TR'],
+  JSA: ['#ff5115', '#1a1a1a', '3K'],
+  QFA: ['#e40000', '#ffffff', 'QF'],
+  KLM: ['#00a1de', '#ffffff', 'KL'],
+  AFR: ['#002157', '#ffffff', 'AF'],
+  VJC: ['#ec1c24', '#ffd420', 'VJ'],
+  AIC: ['#d3212d', '#ffce54', 'AI'],
+  FDB: ['#f37021', '#ffffff', 'FZ'],
+  VIR: ['#e10a0a', '#ffffff', 'VS'],
+  DLH: ['#ffad00', '#05164d', 'LH'],
+  MSR: ['#003580', '#ffffff', 'MS'],
+  SVA: ['#006341', '#ffffff', 'SV'],
+  AAL: ['#36495a', '#ffffff', 'AA'],
+  DAL: ['#003268', '#e01933', 'DL'],
+  JBU: ['#003876', '#ffffff', 'B6'],
+  ACA: ['#d22630', '#ffffff', 'AC'],
+  IBE: ['#d7192d', '#ffcc00', 'IB'],
+  SWR: ['#e30614', '#ffffff', 'LX'],
+  SKY: ['#1b4e9b', '#ffffff', 'BC'],
+  ADO: ['#1e50a2', '#ffffff', 'HD'],
+  HAL: ['#9b1b64', '#ffffff', 'HA'],
+};
+
+// probe once per airline for a real logo file; fall back to the word mark
+const logoOK = new Map();
+function checkLogo(icao) {
+  if (logoOK.has(icao)) return;
+  logoOK.set(icao, false);
+  const img = new Image();
+  img.onload = () => logoOK.set(icao, true);
+  img.src = 'logos/' + icao + '.png';
+}
+
+function logoHTML(f) {
+  const icao = (f.callsign || '').slice(0, 3);
+  if (logoOK.get(icao)) {
+    return `<div class="alogo img" title="${f.airline}"><img src="logos/${icao}.png" alt="${f.airline}"></div>`;
+  }
+  const b = BRANDS[icao];
+  if (b) return `<div class="alogo" style="background:${b[0]};color:${b[1]}" title="${f.airline}">${b[2]}</div>`;
+  const hue = hash(f.airline || icao) % 360;
+  return `<div class="alogo" style="background:hsl(${hue} 40% 24%);color:hsl(${hue} 80% 72%)" title="${f.airline}">${icao}</div>`;
+}
 const WIDEBODIES = new Set(['A333', 'A339', 'A359', 'A388', 'B772', 'B77W', 'B788', 'B789', 'B748']);
 
 // ---------- geo ----------
@@ -346,6 +413,7 @@ const GROUND_STATES = new Set(['rollout', 'taxi-in', 'at-gate', 'boarding', 'pus
 
 function makeFlight(route, kind) {
   const [icao, airline, city, type] = route;
+  checkLogo(icao);
   return {
     callsign: icao + String(1 + Math.floor(Math.random() * 8999)),
     airline, type, kind,
@@ -1142,12 +1210,9 @@ function chipFor(f) {
 }
 
 function card(f) {
-  const h = hash(f.airline || f.callsign);
-  const hue = h % 360;
   const sel = f === selected ? ' sel' : '';
-  const tag = (f.callsign || '').slice(0, 3);
   return `<div class="fcard${sel}" data-cs="${f.callsign}">
-    <div class="alogo" style="background:hsl(${hue} 40% 24%);color:hsl(${hue} 80% 72%)" title="${f.airline}">${tag}</div>
+    ${logoHTML(f)}
     <div class="fmain"><span class="fcs">${f.callsign}</span><span class="ftype">${f.type}</span></div>
     <div class="fchips"><span class="chip act">${chipFor(f)}</span><span class="chip ok">ON TIME</span></div>
   </div>`;
@@ -1233,6 +1298,7 @@ function renderTimetable() {
     const place = AIRPORTS[f.city] ? AIRPORTS[f.city].name : f.city;
     return `<div class="tt-row${f === selected ? ' sel' : ''}" data-cs="${f.callsign}">
       <div class="tt-time">${fmtClock(when)}</div>
+      ${logoHTML(f).replace('class="alogo', 'class="alogo tt-logo')}
       <div class="tt-mid">
         <span class="tt-cs">${f.callsign}</span><span class="tt-type">${f.type}</span>
         <div class="tt-place">${f.kind === 'ARR' ? 'FROM' : 'TO'}: ${place.toUpperCase()}</div>
