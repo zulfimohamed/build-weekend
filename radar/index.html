@@ -6,32 +6,55 @@
 <title>Approach Radar</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
-<main class="hall">
-  <header class="board-header">
-    <span class="hdr-title">APPROACH RADAR</span>
-    <span class="hdr-mid" id="freq">KUL APP 119.6</span>
-    <span class="hdr-clock" id="clock">--:--:--Z</span>
+<body class="tab-app">
+<main class="game">
+  <header class="topbar">
+    <nav class="tabs">
+      <button class="tab" data-tab="ground">AIRPORT RADAR</button>
+      <button class="tab active" data-tab="app">APP RADAR</button>
+      <button class="tab" data-tab="time">TIMETABLE</button>
+    </nav>
+    <div class="top-right">
+      <select id="hub" aria-label="airport"></select>
+      <span class="hdr-clock" id="clock">--:--:--Z</span>
+    </div>
   </header>
 
   <div class="layout">
-    <div class="scope-wrap">
-      <canvas id="scope" aria-label="radar scope"></canvas>
-    </div>
-    <aside class="strips">
-      <div class="strips-head">FLIGHT STRIPS</div>
-      <div id="striplist"></div>
-    </aside>
-  </div>
+    <section class="mainarea">
+      <div id="pane-ground" class="pane">
+        <canvas id="groundc" aria-label="airport ground radar"></canvas>
+      </div>
+      <div id="pane-app" class="pane active">
+        <div class="scope-wrap">
+          <canvas id="scope" aria-label="approach radar scope"></canvas>
+        </div>
+      </div>
+      <div id="pane-time" class="pane">
+        <div class="timetable">
+          <div class="tt-col">
+            <div class="tt-head">ARRIVALS</div>
+            <div id="tt-arr"></div>
+          </div>
+          <div class="tt-col">
+            <div class="tt-head">DEPARTURES</div>
+            <div id="tt-dep"></div>
+          </div>
+        </div>
+      </div>
 
-  <footer class="controls">
-    <select id="hub" aria-label="radar site"></select>
-    <button id="range">RNG 40 NM</button>
-    <button id="labels" aria-pressed="true">labels</button>
-    <button id="trails" aria-pressed="true">trails</button>
-    <button id="wx" aria-pressed="false">wx</button>
-    <button id="sound" aria-pressed="false">&#128263; sound</button>
-  </footer>
+      <footer class="controls" id="app-controls">
+        <button id="range">RNG 40 NM</button>
+        <button id="viewmode" aria-pressed="true">live</button>
+        <button id="labels" aria-pressed="true">labels</button>
+        <button id="trails" aria-pressed="true">trails</button>
+        <button id="wx" aria-pressed="false">wx</button>
+        <button id="sound" aria-pressed="false">&#128263; sound</button>
+      </footer>
+    </section>
+
+    <aside class="sidebar" id="sidebar"></aside>
+  </div>
 </main>
 <script src="script.js"></script>
 </body>
