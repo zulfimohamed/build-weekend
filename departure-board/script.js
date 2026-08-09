@@ -17,23 +17,6 @@ const BOARDING_WIDTH = 4;
 const ROWS = 16;
 const ROW_WIDTH = FIELDS.reduce((s, f) => s + f.width, 0);
 
-const DESTINATIONS = [
-  'SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA',
-  'SEOUL', 'TAIPEI', 'HONG KONG', 'SHANGHAI', 'MUMBAI', 'DELHI',
-  'DOHA', 'DUBAI', 'ISTANBUL', 'LONDON', 'PARIS', 'AMSTERDAM',
-  'FRANKFURT', 'ZURICH', 'ROME', 'MADRID', 'NEW YORK', 'CHICAGO',
-  'LOS ANGELES', 'SEATTLE', 'TORONTO', 'MEXICO CITY', 'SYDNEY',
-  'MELBOURNE', 'AUCKLAND', 'NAIROBI', 'CAIRO', 'CAPE TOWN',
-  'REYKJAVIK', 'HONOLULU',
-];
-
-const GLOBAL_AIRLINES = [
-  ['EK', 'EMIRATES'], ['QR', 'QATAR AIRWAYS'], ['LH', 'LUFTHANSA'],
-  ['KL', 'KLM'], ['AF', 'AIR FRANCE'], ['CX', 'CATHAY PAC'],
-  ['TG', 'THAI AIRWAYS'], ['GA', 'GARUDA'], ['KE', 'KOREAN AIR'],
-  ['QF', 'QANTAS'],
-];
-
 // every city the board can be set to, with the hub carriers based there
 const CITIES = {
   'SINGAPORE':    [['SQ', 'SINGAPORE AIR'], ['TR', 'SCOOT']],
@@ -46,8 +29,8 @@ const CITIES = {
   'TAIPEI':       [['BR', 'EVA AIR'], ['CI', 'CHINA AIR']],
   'HONG KONG':    [['CX', 'CATHAY PAC'], ['UO', 'HK EXPRESS']],
   'SHANGHAI':     [['MU', 'CHINA EASTERN'], ['FM', 'SHANGHAI AIR']],
-  'MUMBAI':       [['AI', 'AIR INDIA'], ['6E', 'INDIGO'], ['UK', 'VISTARA']],
-  'DELHI':        [['AI', 'AIR INDIA'], ['6E', 'INDIGO'], ['UK', 'VISTARA']],
+  'MUMBAI':       [['AI', 'AIR INDIA'], ['6E', 'INDIGO']],
+  'DELHI':        [['AI', 'AIR INDIA'], ['6E', 'INDIGO']],
   'DOHA':         [['QR', 'QATAR AIRWAYS']],
   'DUBAI':        [['EK', 'EMIRATES'], ['FZ', 'FLYDUBAI']],
   'ISTANBUL':     [['TK', 'TURKISH AIR'], ['PC', 'PEGASUS']],
@@ -69,94 +52,247 @@ const CITIES = {
   'AUCKLAND':     [['NZ', 'AIR NZ'], ['JQ', 'JETSTAR']],
   'NAIROBI':      [['KQ', 'KENYA AIRWAYS']],
   'CAIRO':        [['MS', 'EGYPTAIR']],
-  'CAPE TOWN':    [['SA', 'SOUTH AFRICAN'], ['FA', 'FLYSAFAIR']],
+  // South African and FlySafair fly almost nothing from Cape Town that isn't
+  // domestic or regional, so Cape Town's departures are the long-haul carriers
+  // heading back to their own hubs — which is what the real board looks like
+  'CAPE TOWN':    [],
   'REYKJAVIK':    [['FI', 'ICELANDAIR']],
   'HONOLULU':     [['HA', 'HAWAIIAN'], ['WN', 'SOUTHWEST']],
 };
 
-// which region each destination belongs to, for matching airlines to routes
-const REGIONS = {
-  ASIA: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA',
-         'SEOUL', 'TAIPEI', 'HONG KONG', 'SHANGHAI', 'MUMBAI', 'DELHI'],
-  MIDEAST: ['DOHA', 'DUBAI', 'ISTANBUL'],
-  EUROPE: ['LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME',
-           'MADRID', 'REYKJAVIK'],
-  AMERICAS: ['NEW YORK', 'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'TORONTO',
-             'MEXICO CITY', 'HONOLULU'],
-  OCEANIA: ['SYDNEY', 'MELBOURNE', 'AUCKLAND'],
-  AFRICA: ['NAIROBI', 'CAIRO', 'CAPE TOWN'],
-};
+const DESTINATIONS = Object.keys(CITIES);
 
-const DEST_REGION = {};
-for (const [region, cities] of Object.entries(REGIONS)) {
-  for (const city of cities) DEST_REGION[city] = region;
+// where each carrier is based, and what it's called — both fall out of
+// CITIES, so there's one place to edit a carrier
+const BASES = {};
+const NAMES = {};
+for (const [name, carriers] of Object.entries(CITIES)) {
+  for (const [code, airline] of carriers) {
+    (BASES[code] = BASES[code] || []).push(name);
+    NAMES[code] = airline;
+  }
 }
 
-// regions each airline flies to — a row only pairs an airline with a
-// destination on its network
-const AIRLINE_ROUTES = {
-  EK: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'OCEANIA', 'AFRICA'],
-  QR: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'OCEANIA', 'AFRICA'],
-  LH: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'AFRICA'],
-  KL: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'AFRICA'],
-  AF: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'AFRICA'],
-  CX: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  TG: ['ASIA', 'EUROPE', 'OCEANIA'],
-  GA: ['ASIA', 'MIDEAST', 'EUROPE', 'OCEANIA'],
-  KE: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  QF: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  SQ: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'OCEANIA', 'AFRICA'],
-  TR: ['ASIA', 'OCEANIA'],
-  MH: ['ASIA', 'MIDEAST', 'EUROPE', 'OCEANIA'],
-  AK: ['ASIA'],
-  OD: ['ASIA', 'OCEANIA'],
-  JL: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  NH: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  MM: ['ASIA'],
-  AI: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  '6E': ['ASIA', 'MIDEAST'],
-  UK: ['ASIA', 'MIDEAST', 'EUROPE'],
-  EY: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'OCEANIA', 'AFRICA'],
-  FZ: ['ASIA', 'MIDEAST', 'EUROPE', 'AFRICA'],
-  TK: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'OCEANIA', 'AFRICA'],
-  PC: ['MIDEAST', 'EUROPE'],
-  BA: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'AFRICA'],
-  VS: ['ASIA', 'AMERICAS', 'AFRICA'],
-  U2: ['EUROPE'],
-  UA: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  AA: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  DL: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  WN: ['AMERICAS'],
-  OZ: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  BR: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  CI: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  UO: ['ASIA'],
-  MU: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  FM: ['ASIA'],
-  HV: ['EUROPE'],
-  LX: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'AFRICA'],
-  AZ: ['ASIA', 'MIDEAST', 'EUROPE', 'AMERICAS', 'AFRICA'],
-  IB: ['EUROPE', 'AMERICAS'],
-  UX: ['EUROPE', 'AMERICAS'],
-  B6: ['EUROPE', 'AMERICAS'],
-  AS: ['AMERICAS'],
-  AC: ['ASIA', 'EUROPE', 'AMERICAS', 'OCEANIA'],
-  WS: ['EUROPE', 'AMERICAS'],
-  AM: ['ASIA', 'EUROPE', 'AMERICAS'],
-  Y4: ['AMERICAS'],
-  JQ: ['ASIA', 'OCEANIA'],
-  VA: ['ASIA', 'OCEANIA'],
-  NZ: ['ASIA', 'AMERICAS', 'OCEANIA'],
-  KQ: ['ASIA', 'MIDEAST', 'EUROPE', 'AFRICA'],
-  MS: ['ASIA', 'MIDEAST', 'EUROPE', 'AFRICA'],
-  SA: ['EUROPE', 'AFRICA'],
-  FA: ['AFRICA'],
-  FI: ['EUROPE', 'AMERICAS'],
-  HA: ['ASIA', 'AMERICAS', 'OCEANIA'],
+// The board cities each carrier actually flies to nonstop from its base.
+// Pair this with the base list and a route is only legal when the operating
+// carrier is at one end of it — which is how real schedules work, and what
+// keeps Lufthansa off Singapore–Nairobi while leaving it on Singapore–Frankfurt.
+const NETWORK = {
+  // --- Southeast Asia ---
+  SQ: ['KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA', 'SEOUL', 'TAIPEI',
+       'HONG KONG', 'SHANGHAI', 'MUMBAI', 'DELHI', 'DUBAI', 'ISTANBUL', 'LONDON',
+       'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME', 'NEW YORK',
+       'LOS ANGELES', 'SEATTLE', 'SYDNEY', 'MELBOURNE', 'AUCKLAND'],
+  TR: ['KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA', 'SEOUL', 'TAIPEI',
+       'HONG KONG', 'SHANGHAI', 'MUMBAI', 'DELHI'],
+  MH: ['SINGAPORE', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA', 'SEOUL', 'TAIPEI',
+       'HONG KONG', 'SHANGHAI', 'MUMBAI', 'DELHI', 'DOHA', 'DUBAI', 'LONDON',
+       'SYDNEY', 'MELBOURNE'],
+  AK: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TAIPEI', 'HONG KONG',
+       'SHANGHAI', 'MUMBAI', 'DELHI', 'SEOUL', 'TOKYO', 'OSAKA', 'SYDNEY',
+       'MELBOURNE'],
+  OD: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'MUMBAI', 'DELHI',
+       'HONG KONG', 'TAIPEI', 'SHANGHAI', 'MELBOURNE'],
+  TG: ['SINGAPORE', 'KUALA LUMPUR', 'JAKARTA', 'TOKYO', 'OSAKA', 'SEOUL',
+       'TAIPEI', 'HONG KONG', 'SHANGHAI', 'MUMBAI', 'DELHI', 'DUBAI', 'ISTANBUL',
+       'LONDON', 'PARIS', 'FRANKFURT', 'ZURICH', 'ROME', 'SYDNEY', 'MELBOURNE'],
+  GA: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'TOKYO', 'OSAKA', 'SEOUL',
+       'HONG KONG', 'SHANGHAI', 'AMSTERDAM', 'SYDNEY', 'MELBOURNE'],
+
+  // --- Northeast Asia ---
+  JL: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'SEOUL', 'TAIPEI',
+       'HONG KONG', 'SHANGHAI', 'DELHI', 'LONDON', 'PARIS', 'FRANKFURT',
+       'NEW YORK', 'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'SYDNEY', 'MELBOURNE',
+       'HONOLULU', 'TOKYO', 'OSAKA'],
+  NH: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'SEOUL', 'TAIPEI',
+       'HONG KONG', 'SHANGHAI', 'DELHI', 'MUMBAI', 'LONDON', 'PARIS',
+       'FRANKFURT', 'NEW YORK', 'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'SYDNEY',
+       'HONOLULU', 'TOKYO', 'OSAKA'],
+  MM: ['SEOUL', 'TAIPEI', 'HONG KONG', 'SHANGHAI', 'BANGKOK', 'TOKYO', 'OSAKA'],
+  KE: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA',
+       'TAIPEI', 'HONG KONG', 'SHANGHAI', 'DELHI', 'DUBAI', 'ISTANBUL', 'LONDON',
+       'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME', 'MADRID', 'NEW YORK',
+       'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'TORONTO', 'SYDNEY', 'AUCKLAND',
+       'HONOLULU'],
+  OZ: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA',
+       'TAIPEI', 'HONG KONG', 'SHANGHAI', 'DELHI', 'ISTANBUL', 'LONDON', 'PARIS',
+       'FRANKFURT', 'ROME', 'NEW YORK', 'CHICAGO', 'LOS ANGELES', 'SEATTLE',
+       'SYDNEY', 'HONOLULU'],
+  BR: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA',
+       'SEOUL', 'HONG KONG', 'SHANGHAI', 'LONDON', 'PARIS', 'AMSTERDAM',
+       'NEW YORK', 'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'TORONTO'],
+  CI: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA',
+       'SEOUL', 'HONG KONG', 'SHANGHAI', 'DELHI', 'LONDON', 'AMSTERDAM',
+       'FRANKFURT', 'ROME', 'NEW YORK', 'LOS ANGELES', 'SEATTLE', 'SYDNEY',
+       'MELBOURNE', 'AUCKLAND'],
+  CX: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA',
+       'SEOUL', 'TAIPEI', 'SHANGHAI', 'MUMBAI', 'DELHI', 'DUBAI', 'LONDON',
+       'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME', 'MADRID', 'NEW YORK',
+       'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'TORONTO', 'SYDNEY', 'MELBOURNE',
+       'AUCKLAND'],
+  UO: ['TOKYO', 'OSAKA', 'SEOUL', 'TAIPEI', 'BANGKOK', 'KUALA LUMPUR',
+       'SINGAPORE', 'SHANGHAI'],
+  MU: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA',
+       'SEOUL', 'TAIPEI', 'HONG KONG', 'DELHI', 'DUBAI', 'ISTANBUL', 'LONDON',
+       'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ROME', 'MADRID', 'NEW YORK',
+       'CHICAGO', 'LOS ANGELES', 'SYDNEY', 'MELBOURNE', 'AUCKLAND'],
+  FM: ['BANGKOK', 'TOKYO', 'OSAKA', 'SEOUL', 'TAIPEI', 'HONG KONG', 'SINGAPORE'],
+
+  // --- South Asia ---
+  AI: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'TOKYO', 'SEOUL', 'HONG KONG',
+       'SHANGHAI', 'DOHA', 'DUBAI', 'LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT',
+       'ZURICH', 'ROME', 'MADRID', 'NEW YORK', 'CHICAGO', 'LOS ANGELES',
+       'TORONTO', 'SYDNEY', 'MELBOURNE', 'DELHI', 'MUMBAI'],
+  '6E': ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'HONG KONG', 'DOHA', 'DUBAI',
+         'ISTANBUL', 'AMSTERDAM', 'LONDON', 'DELHI', 'MUMBAI'],
+
+  // --- Gulf & Turkey ---
+  QR: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA',
+       'SEOUL', 'HONG KONG', 'SHANGHAI', 'MUMBAI', 'DELHI', 'DUBAI', 'ISTANBUL',
+       'LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME', 'MADRID',
+       'NEW YORK', 'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'TORONTO', 'SYDNEY',
+       'MELBOURNE', 'AUCKLAND', 'NAIROBI', 'CAIRO', 'CAPE TOWN'],
+  EK: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA',
+       'SEOUL', 'TAIPEI', 'HONG KONG', 'SHANGHAI', 'MUMBAI', 'DELHI', 'DOHA',
+       'ISTANBUL', 'LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME',
+       'MADRID', 'NEW YORK', 'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'TORONTO',
+       'MEXICO CITY', 'SYDNEY', 'MELBOURNE', 'AUCKLAND', 'NAIROBI', 'CAIRO',
+       'CAPE TOWN'],
+  FZ: ['DOHA', 'MUMBAI', 'DELHI', 'ISTANBUL', 'BANGKOK', 'CAIRO'],
+  TK: ['SINGAPORE', 'KUALA LUMPUR', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA',
+       'SEOUL', 'TAIPEI', 'HONG KONG', 'SHANGHAI', 'MUMBAI', 'DELHI', 'DOHA',
+       'DUBAI', 'LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME',
+       'MADRID', 'NEW YORK', 'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'TORONTO',
+       'MEXICO CITY', 'NAIROBI', 'CAIRO', 'CAPE TOWN'],
+  PC: ['LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME', 'MADRID',
+       'DUBAI', 'DOHA'],
+
+  // --- Europe ---
+  BA: ['SINGAPORE', 'BANGKOK', 'TOKYO', 'OSAKA', 'HONG KONG', 'SHANGHAI',
+       'MUMBAI', 'DELHI', 'DOHA', 'DUBAI', 'ISTANBUL', 'PARIS', 'AMSTERDAM',
+       'FRANKFURT', 'ZURICH', 'ROME', 'MADRID', 'NEW YORK', 'CHICAGO',
+       'LOS ANGELES', 'SEATTLE', 'TORONTO', 'MEXICO CITY', 'NAIROBI', 'CAIRO',
+       'CAPE TOWN'],
+  VS: ['NEW YORK', 'LOS ANGELES', 'SEATTLE', 'MUMBAI', 'DELHI', 'SHANGHAI',
+       'TOKYO', 'CAPE TOWN'],
+  U2: ['LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME', 'MADRID'],
+  AF: ['SINGAPORE', 'BANGKOK', 'TOKYO', 'OSAKA', 'SEOUL', 'TAIPEI', 'HONG KONG',
+       'SHANGHAI', 'MUMBAI', 'DELHI', 'DOHA', 'DUBAI', 'ISTANBUL', 'LONDON',
+       'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME', 'MADRID', 'NEW YORK',
+       'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'TORONTO', 'MEXICO CITY', 'NAIROBI',
+       'CAIRO', 'CAPE TOWN'],
+  KL: ['SINGAPORE', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA', 'SEOUL', 'TAIPEI',
+       'HONG KONG', 'SHANGHAI', 'MUMBAI', 'DELHI', 'DOHA', 'DUBAI', 'ISTANBUL',
+       'LONDON', 'PARIS', 'FRANKFURT', 'ZURICH', 'ROME', 'MADRID', 'NEW YORK',
+       'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'TORONTO', 'MEXICO CITY', 'NAIROBI',
+       'CAIRO', 'CAPE TOWN'],
+  HV: ['LONDON', 'PARIS', 'ROME', 'MADRID'],
+  LH: ['SINGAPORE', 'BANGKOK', 'TOKYO', 'OSAKA', 'SEOUL', 'TAIPEI', 'HONG KONG',
+       'SHANGHAI', 'MUMBAI', 'DELHI', 'DUBAI', 'ISTANBUL', 'LONDON', 'PARIS',
+       'AMSTERDAM', 'ZURICH', 'ROME', 'MADRID', 'NEW YORK', 'CHICAGO',
+       'LOS ANGELES', 'SEATTLE', 'TORONTO', 'MEXICO CITY', 'NAIROBI', 'CAIRO',
+       'CAPE TOWN'],
+  LX: ['SINGAPORE', 'BANGKOK', 'TOKYO', 'OSAKA', 'SHANGHAI', 'HONG KONG',
+       'MUMBAI', 'DELHI', 'DUBAI', 'ISTANBUL', 'LONDON', 'PARIS', 'AMSTERDAM',
+       'FRANKFURT', 'ROME', 'MADRID', 'NEW YORK', 'CHICAGO', 'LOS ANGELES',
+       'TORONTO', 'CAIRO'],
+  AZ: ['TOKYO', 'DELHI', 'NEW YORK', 'CHICAGO', 'LOS ANGELES', 'TORONTO',
+       'LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'MADRID', 'CAIRO'],
+  IB: ['LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME',
+       'NEW YORK', 'CHICAGO', 'LOS ANGELES', 'TORONTO', 'MEXICO CITY', 'TOKYO',
+       'CAIRO'],
+  UX: ['NEW YORK', 'MEXICO CITY', 'ROME', 'PARIS', 'LONDON', 'AMSTERDAM',
+       'FRANKFURT'],
+  FI: ['LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME', 'MADRID',
+       'NEW YORK', 'CHICAGO', 'SEATTLE', 'TORONTO'],
+
+  // --- North America ---
+  DL: ['LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME', 'MADRID',
+       'TOKYO', 'SEOUL', 'SHANGHAI', 'MUMBAI', 'MEXICO CITY', 'TORONTO',
+       'SYDNEY', 'AUCKLAND', 'HONOLULU', 'NEW YORK', 'CHICAGO', 'LOS ANGELES',
+       'SEATTLE'],
+  AA: ['LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME', 'MADRID',
+       'TOKYO', 'SEOUL', 'DELHI', 'DOHA', 'MEXICO CITY', 'TORONTO', 'SYDNEY',
+       'AUCKLAND', 'HONOLULU', 'NEW YORK', 'CHICAGO', 'LOS ANGELES', 'SEATTLE'],
+  UA: ['SINGAPORE', 'TOKYO', 'SEOUL', 'TAIPEI', 'HONG KONG', 'SHANGHAI', 'DELHI',
+       'MUMBAI', 'DUBAI', 'ISTANBUL', 'LONDON', 'PARIS', 'AMSTERDAM',
+       'FRANKFURT', 'ZURICH', 'ROME', 'MADRID', 'NEW YORK', 'CHICAGO',
+       'LOS ANGELES', 'SEATTLE', 'TORONTO', 'MEXICO CITY', 'SYDNEY', 'MELBOURNE',
+       'AUCKLAND', 'HONOLULU', 'CAPE TOWN'],
+  B6: ['LONDON', 'PARIS', 'AMSTERDAM', 'LOS ANGELES', 'SEATTLE', 'CHICAGO',
+       'NEW YORK'],
+  WN: ['LOS ANGELES', 'SEATTLE', 'NEW YORK', 'MEXICO CITY', 'CHICAGO',
+       'HONOLULU'],
+  AS: ['NEW YORK', 'CHICAGO', 'TORONTO', 'MEXICO CITY', 'HONOLULU',
+       'LOS ANGELES', 'SEATTLE'],
+  AC: ['LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME', 'MADRID',
+       'TOKYO', 'SEOUL', 'HONG KONG', 'SHANGHAI', 'DELHI', 'MUMBAI', 'DUBAI',
+       'DOHA', 'SYDNEY', 'MEXICO CITY', 'NEW YORK', 'CHICAGO', 'LOS ANGELES',
+       'SEATTLE', 'TORONTO'],
+  WS: ['LONDON', 'PARIS', 'ROME', 'MEXICO CITY', 'LOS ANGELES', 'SEATTLE',
+       'NEW YORK', 'CHICAGO', 'TORONTO', 'HONOLULU'],
+  AM: ['NEW YORK', 'CHICAGO', 'LOS ANGELES', 'SEATTLE', 'TORONTO', 'MADRID',
+       'PARIS', 'AMSTERDAM', 'ROME', 'LONDON', 'TOKYO', 'SEOUL', 'MEXICO CITY'],
+  Y4: ['LOS ANGELES', 'CHICAGO', 'NEW YORK', 'SEATTLE', 'MEXICO CITY'],
+  HA: ['TOKYO', 'OSAKA', 'SEOUL', 'SYDNEY', 'AUCKLAND', 'LOS ANGELES', 'SEATTLE',
+       'NEW YORK', 'HONOLULU'],
+
+  // --- Oceania ---
+  // Qantas reaches London the way it always has, one stop through Singapore —
+  // see FIFTH_FREEDOM below, not a Sydney–London nonstop
+  QF: ['SINGAPORE', 'BANGKOK', 'JAKARTA', 'TOKYO', 'OSAKA', 'SEOUL', 'HONG KONG',
+       'DELHI', 'LOS ANGELES', 'AUCKLAND', 'HONOLULU', 'SYDNEY', 'MELBOURNE'],
+  JQ: ['SINGAPORE', 'BANGKOK', 'TOKYO', 'OSAKA', 'AUCKLAND', 'SYDNEY',
+       'MELBOURNE', 'HONOLULU'],
+  VA: ['AUCKLAND', 'TOKYO', 'DOHA', 'SYDNEY', 'MELBOURNE'],
+  NZ: ['SYDNEY', 'MELBOURNE', 'SINGAPORE', 'TOKYO', 'OSAKA', 'SEOUL',
+       'HONG KONG', 'SHANGHAI', 'LOS ANGELES', 'NEW YORK', 'CHICAGO',
+       'HONOLULU', 'AUCKLAND'],
+
+  // --- Africa ---
+  KQ: ['LONDON', 'PARIS', 'AMSTERDAM', 'DUBAI', 'DOHA', 'MUMBAI', 'BANGKOK',
+       'CAPE TOWN', 'NAIROBI'],
+  MS: ['LONDON', 'PARIS', 'AMSTERDAM', 'FRANKFURT', 'ZURICH', 'ROME', 'MADRID',
+       'ISTANBUL', 'DUBAI', 'DOHA', 'MUMBAI', 'BANGKOK', 'TOKYO', 'NEW YORK',
+       'TORONTO', 'NAIROBI', 'CAIRO'],
 };
 
-function airlineServes(code, dest) {
-  return (AIRLINE_ROUTES[code] || []).includes(DEST_REGION[dest]);
+// Fifth-freedom services: a carrier flying between two cities that are both
+// away from home. Rare in real life, so this stays a short explicit list
+// rather than a rule.
+const FIFTH_FREEDOM = [
+  ['QF', 'SINGAPORE', 'LONDON'],      // QF1/2, the Kangaroo route
+  ['SQ', 'FRANKFURT', 'NEW YORK'],    // SQ26/25
+  ['EK', 'BANGKOK', 'HONG KONG'],     // EK384/385
+  ['EK', 'SINGAPORE', 'MELBOURNE'],   // EK404/405
+];
+
+const serves = (code, city) => (NETWORK[code] || []).includes(city);
+const basedAt = (code, city) => (BASES[code] || []).includes(city);
+
+// every carrier that could plausibly be operating this city pair
+function carriersFor(origin, dest) {
+  const out = [];
+  for (const code of Object.keys(NETWORK)) {
+    if ((basedAt(code, origin) && serves(code, dest)) ||
+        (basedAt(code, dest) && serves(code, origin)) ||
+        FIFTH_FREEDOM.some(([c, a, b]) =>
+          c === code && ((a === origin && b === dest) || (a === dest && b === origin)))) {
+      out.push([code, NAMES[code]]);
+    }
+  }
+  return out;
+}
+
+// the cities anyone actually flies to from here — recomputed only when the
+// board changes city, since it walks every carrier
+const destCache = {};
+function destinationsFrom(origin) {
+  if (!destCache[origin]) {
+    destCache[origin] = DESTINATIONS.filter(
+      (d) => d !== origin && carriersFor(origin, d).length > 0);
+  }
+  return destCache[origin];
 }
 
 const REMARKS = ['ON TIME', 'ON TIME', 'ON TIME', 'BOARDING', 'BOARDING', 'GATE OPEN', 'DELAYED', 'FINAL CALL'];
@@ -293,13 +429,12 @@ let flights = [];
 
 function newFlight(depMins) {
   const origin = city;
-  const dest = rand(DESTINATIONS.filter((d) => d !== origin));
-  // hub carriers fly twice as often as the global pool, but only
-  // airlines whose network covers the destination are eligible
-  const hub = CITIES[city];
-  const candidates = hub.concat(hub, GLOBAL_AIRLINES)
-    .filter(([code]) => airlineServes(code, dest));
-  const [code, airline] = rand(candidates.length ? candidates : GLOBAL_AIRLINES);
+  const dest = rand(destinationsFrom(origin));
+  // everyone here is based at one end of the route already; the home
+  // carriers just get the schedule share they'd have in real life
+  const candidates = carriersFor(origin, dest);
+  const home = candidates.filter(([code]) => basedAt(code, origin));
+  const [code, airline] = rand(home.concat(home, candidates));
   return {
     dep: depMins,
     origin,
@@ -352,16 +487,26 @@ const NEXT_REMARK = {
 function tickFlights() {
   const r = Math.floor(Math.random() * ROWS);
   const f = flights[r];
+  let resort = false;
   if (f.remark === 'DEPARTED' || f.remark === 'CANCELLED') {
     const latest = Math.max(...flights.map((x) => x.dep));
     flights[r] = newFlight(latest + 4 + Math.floor(Math.random() * 14));
+    resort = true;
   } else if (Math.random() < 0.06) {
     f.remark = 'CANCELLED';
   } else if (f.remark === 'ON TIME' && Math.random() < 0.18) {
     f.remark = 'DELAYED';
     f.dep += 15 + Math.floor(Math.random() * 35); // a delay actually moves the time
+    resort = true;
   } else {
     f.remark = NEXT_REMARK[f.remark] || 'BOARDING';
+  }
+  // a delay that pushes a flight past the one below it drops it down the
+  // board, and the rows below flap up — real boards re-sort the same way
+  if (resort && flights.some((x, i) => i > 0 && x.dep < flights[i - 1].dep)) {
+    flights.sort((a, b) => a.dep - b.dep);
+    renderFlights(false);
+    return;
   }
   setRow(r, flightToText(flights[r]));
   setRowStatus(r, flights[r].remark);
@@ -391,6 +536,48 @@ function addRandomFlight() {
 let audioCtx = null;
 let noiseBuf = null;
 let soundOn = false;
+
+// A page whose only output is Web Audio lands in iOS's "ambient" audio
+// session, which the ringer switch silences. Claiming "playback" — the
+// category media players use — makes the board audible on silent. It also
+// stops whatever else the phone was playing, so we only hold the claim
+// while sound is actually on and hand it back the moment it goes off.
+let silentEl = null;
+
+// a tenth of a second of ±1-LSB tone: inaudible, but genuine non-zero
+// output, which is what iOS wants before it opens a playback session.
+// Built rather than pasted as a base64 blob so the file stays readable.
+function silentClipURL() {
+  const rate = 8000, n = 800;
+  const buf = new ArrayBuffer(44 + n * 2);
+  const v = new DataView(buf);
+  const tag = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  tag(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); tag(8, 'WAVEfmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  tag(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, i % 2 ? 1 : -1, true);
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+
+function claimPlayback(on) {
+  if (navigator.audioSession) navigator.audioSession.type = on ? 'playback' : 'auto';
+  // older iOS has no audioSession — there, a media element in playback is
+  // what moves the page out of the ambient category
+  if (on) {
+    if (!silentEl) {
+      silentEl = new Audio(silentClipURL());
+      silentEl.loop = true;
+      silentEl.playsInline = true;
+      silentEl.preload = 'auto';
+    }
+    const p = silentEl.play();
+    if (p) p.catch(() => { /* no gesture yet, or not supported */ });
+  } else if (silentEl) {
+    silentEl.pause();
+  }
+}
 
 function ensureAudio() {
   if (audioCtx) return;
@@ -435,15 +622,69 @@ document.getElementById('shuffle').addEventListener('click', () => {
   renderFlights(true);
 });
 
-document.getElementById('fullscreen').addEventListener('click', () => {
-  if (document.fullscreenElement) document.exitFullscreen();
-  else document.documentElement.requestFullscreen();
+// ---------- fullscreen ----------
+
+// iPhone Safari exposes no Fullscreen API at all (only <video> can go
+// fullscreen), and iPadOS still needs the webkit prefix. So the styling
+// hangs off a `fs` class we control, and the native call — when there is
+// one — is a bonus on top of it.
+const fsBtn = document.getElementById('fullscreen');
+const docEl = document.documentElement;
+const requestFs = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
+const exitFs = document.exitFullscreen || document.webkitExitFullscreen;
+
+const nativeFsOn = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+// already launched from the home screen? then there's no chrome to hide
+const standalone = navigator.standalone === true ||
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.matchMedia('(display-mode: fullscreen)').matches;
+if (standalone) fsBtn.hidden = true;
+
+// portrait phones are too narrow for all 66 flaps, so in fullscreen we turn
+// the board on its side and use the long edge of the screen instead
+const portrait = window.matchMedia('(orientation: portrait) and (max-width: 640px)');
+
+function applyFullscreen(on) {
+  document.body.classList.toggle('fs', on);
+  document.body.classList.toggle('fs-rot', on && portrait.matches);
+  fsBtn.setAttribute('aria-pressed', String(on));
+}
+
+portrait.addEventListener('change', () => {
+  if (document.body.classList.contains('fs')) applyFullscreen(true);
+});
+
+// Esc, the iOS swipe, or the Android back button all leave fullscreen
+// without going through the button — resync when they do
+const onFsChange = () => { if (!nativeFsOn()) applyFullscreen(false); };
+document.addEventListener('fullscreenchange', onFsChange);
+document.addEventListener('webkitfullscreenchange', onFsChange);
+
+fsBtn.addEventListener('click', () => {
+  const on = !document.body.classList.contains('fs');
+  applyFullscreen(on);
+  if (on) {
+    if (requestFs) Promise.resolve(requestFs.call(docEl)).catch(() => {});
+    // Android honours this and saves us the CSS rotation; iOS rejects it
+    if (screen.orientation && screen.orientation.lock) {
+      Promise.resolve(screen.orientation.lock('landscape')).catch(() => {});
+    }
+  } else {
+    if (exitFs && nativeFsOn()) Promise.resolve(exitFs.call(document)).catch(() => {});
+    if (screen.orientation && screen.orientation.unlock) {
+      try { screen.orientation.unlock(); } catch (e) { /* not supported */ }
+    }
+  }
 });
 
 soundBtn.addEventListener('click', () => {
-  ensureAudio();
-  audioCtx.resume();
   soundOn = !soundOn;
+  // claim the session before the context exists, so it opens in the right
+  // category rather than having to be re-routed afterwards
+  claimPlayback(soundOn);
+  ensureAudio();
+  audioCtx.resume().catch(() => { /* resumes on the next gesture */ });
   soundBtn.textContent = soundOn ? '\u{1F50A} sound' : '\u{1F507} sound';
   soundBtn.setAttribute('aria-pressed', String(soundOn));
 });

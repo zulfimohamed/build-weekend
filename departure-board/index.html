@@ -2,11 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Departure Board</title>
+<!-- iOS has no Fullscreen API, so "add to home screen" is the only way to
+     get a genuinely chrome-free board. These make that launch fullscreen. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Departures">
+<meta name="theme-color" content="#0a0c0f">
 <link rel="icon" href="../favicon.ico" sizes="32x32">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -27,7 +35,7 @@
     <select id="theme" aria-label="theme"></select>
     <button id="marks" aria-pressed="true" title="boarding lamps">&#9673; marks</button>
     <button id="sound" aria-pressed="false">&#128263; sound</button>
-    <button id="fullscreen" title="fullscreen">&#x26F6;</button>
+    <button id="fullscreen" title="fullscreen" aria-pressed="false">&#x26F6;</button>
   </footer>
 </main>
 <script src="script.js"></script>

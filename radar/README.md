@@ -31,7 +31,13 @@ traffic is the realistic part.
   phases with proper phraseology and radiotelephony callsigns
   ("Speedbird", "Red Cap", "Scooter"…): clearance, pushback, taxi,
   line-up, takeoff, approach, landing. With sound on, the calls are
-  spoken over a squelch click.
+  spoken over a squelch click, and selecting a flight calls out whatever
+  phase it's in straight away.
+- **Overflights** — traffic that isn't landing here is a real long-haul
+  pair flown by the airline that actually flies it, and only appears at
+  airports its great circle genuinely crosses. Watch Kuala Lumpur and
+  Singapore–London goes over the top; watch New York and nothing does,
+  because among these airports nothing does.
 - **Game speed** — x1 / x2 / x4 / x8, and a **timezone** picker for the
   clock and timetable: UTC, airport local time, or your own.
 
