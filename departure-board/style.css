@@ -113,6 +113,11 @@ body {
 
 .colheads span { overflow: hidden; white-space: nowrap; }
 
+/* the boarding column is only four flaps wide but carries an eight-letter
+   label, so it gets tighter tracking of its own rather than being cut to
+   "BOARDIN" */
+.colheads .f-boarding { letter-spacing: 0; font-size: clamp(5px, 0.8vw, 10px); }
+
 .board {
   background: var(--board);
   border: 1px solid var(--edge);
@@ -242,26 +247,81 @@ body.marks .lamp.blink::after { animation: lamp-blink 1.1s steps(1) infinite; }
 .controls button:hover,
 .controls select:hover { border-color: var(--accent); color: var(--accent); }
 
+/* ---- fullscreen ---- */
+
+/* iOS has no Fullscreen API, so the layout hangs off a class the script
+   toggles; :fullscreen is kept alongside it for native desktop fullscreen. */
+body.fs .hall {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  max-width: none;
+  background: var(--bg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding:
+    max(10px, env(safe-area-inset-top))
+    max(10px, env(safe-area-inset-right))
+    max(10px, env(safe-area-inset-bottom))
+    max(10px, env(safe-area-inset-left));
+}
+
 /* ambient display: in fullscreen the controls fade away until hovered */
+body.fs .controls,
 :fullscreen .controls { opacity: 0.15; transition: opacity 0.4s; }
+body.fs .controls:hover,
+body.fs .controls:focus-within,
 :fullscreen .controls:hover,
 :fullscreen .controls:focus-within { opacity: 1; }
+
+/* touch has no hover, so a faded control bar would be a dead end. Keep
+   only the fullscreen button, tucked into the corner as the way back out. */
+@media (hover: none) {
+  body.fs .controls {
+    opacity: 1;
+    position: absolute;
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    margin: 0;
+    width: auto;
+  }
+  body.fs .controls > :not(#fullscreen) { display: none; }
+  body.fs .controls #fullscreen { flex: none; opacity: 0.35; padding: 10px 12px; }
+}
+
+/* portrait phones: the board is turned on its side so all 66 flaps get the
+   long edge of the screen. Sized in dvh/dvw because the axes swap. */
+body.fs-rot .hall {
+  top: 50%;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  width: 100dvh;
+  height: 100dvw;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center center;
+  padding: 8px 12px;
+}
 
 /* ---- small screens: shed columns so the flaps stay readable ---- */
 
 /* tablets / phones in landscape: drop the origin column (it repeats
-   the home airport anyway) */
+   the home airport anyway). The :not(.fs-rot) guard keeps them when the
+   board is rotated — it is laid out along the screen's long edge then, so
+   the width breakpoints no longer describe the space it actually has. */
 @media (max-width: 900px) {
   .hall { padding: 14px 10px; }
   .board { padding: 10px; border-radius: 10px; }
-  .f-origin { display: none; }
+  body:not(.fs-rot) .f-origin { display: none; }
 }
 
 /* phones: drop the airline and check-in columns too, tighten spacing,
    and let the controls fill the width for comfortable touch targets */
 @media (max-width: 640px) {
-  .f-airline { display: none; }
-  .f-check-in { display: none; }
+  body:not(.fs-rot) .f-airline { display: none; }
+  body:not(.fs-rot) .f-check-in { display: none; }
   .board { gap: 4px; }
   .row { gap: 1px; }
   .cell { font-size: clamp(7px, 2.1vw, 14px); }
@@ -274,8 +334,20 @@ body.marks .lamp.blink::after { animation: lamp-blink 1.1s steps(1) infinite; }
 
 /* small phones in portrait: gate goes as well */
 @media (max-width: 430px) {
-  .f-gate { display: none; }
+  body:not(.fs-rot) .f-gate { display: none; }
   .cell { font-size: clamp(6px, 2.6vw, 14px); }
   .board-header { padding-bottom: 10px; }
   .hdr-title { letter-spacing: 0.15em; }
 }
+
+/* rotated: the flap row runs along the viewport's height, so size the type
+   off dvh instead of vw, and claw back every spare pixel — 16 rows of
+   0.72-ratio cells is a tight fit in a phone's short edge. */
+body.fs-rot .cell { font-size: clamp(6px, 1.15dvh, 14px); }
+body.fs-rot .colheads { padding: 0 10px 3px; font-size: clamp(6px, 0.9dvh, 11px); }
+body.fs-rot .colheads .f-boarding { font-size: clamp(5px, 0.7dvh, 10px); }
+body.fs-rot .board { padding: 6px 8px; gap: 2px; border-radius: 8px; }
+body.fs-rot .row { gap: 1px; }
+body.fs-rot .board-header { padding: 0 4px 6px; }
+body.fs-rot .hdr-title { font-size: clamp(10px, 1.6dvh, 20px); letter-spacing: 0.2em; }
+body.fs-rot .hdr-clock { font-size: clamp(10px, 1.5dvh, 18px); }

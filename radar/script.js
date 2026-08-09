@@ -269,7 +269,189 @@ const ROUTES = {
   ],
 };
 
-const TRANSIT_AIRLINES = ['UAE', 'QTR', 'SIA', 'BAW', 'DLH', 'AFR', 'KLM', 'CPA', 'ANA', 'JAL', 'KAL', 'UAL', 'AAL', 'DAL', 'THA', 'MAS', 'ETD', 'THY'];
+// Overflights: real long-haul pairs, flown by the airline that actually
+// flies them — [ICAO, airline, origin, destination, equipment]. The sim keeps
+// whichever ones happen to cross the scope of the airport you're watching,
+// so this is a menu, not a schedule.
+const TRANSIT_ROUTES = [
+  ['UAE', 'Emirates', 'DXB', 'SYD', 'A388'],
+  ['UAE', 'Emirates', 'DXB', 'MEL', 'A388'],
+  ['UAE', 'Emirates', 'DXB', 'AKL', 'B77W'],
+  ['UAE', 'Emirates', 'DXB', 'NRT', 'B77W'],
+  ['UAE', 'Emirates', 'DXB', 'ICN', 'B77W'],
+  ['UAE', 'Emirates', 'DXB', 'MNL', 'B77W'],
+  ['UAE', 'Emirates', 'DXB', 'CGK', 'B77W'],
+  ['UAE', 'Emirates', 'DXB', 'PER', 'B77W'],
+  ['UAE', 'Emirates', 'DXB', 'LAX', 'A388'],
+  ['UAE', 'Emirates', 'DXB', 'SFO', 'B77W'],
+  ['UAE', 'Emirates', 'DXB', 'YYZ', 'B77W'],
+  ['QTR', 'Qatar Airways', 'DOH', 'AKL', 'B77W'],
+  ['QTR', 'Qatar Airways', 'DOH', 'SYD', 'B77W'],
+  ['QTR', 'Qatar Airways', 'DOH', 'MEL', 'B77W'],
+  ['QTR', 'Qatar Airways', 'DOH', 'PER', 'B77W'],
+  ['QTR', 'Qatar Airways', 'DOH', 'HND', 'B77W'],
+  ['QTR', 'Qatar Airways', 'DOH', 'ICN', 'B77W'],
+  ['QTR', 'Qatar Airways', 'DOH', 'PVG', 'B77W'],
+  ['QTR', 'Qatar Airways', 'DOH', 'MNL', 'B77W'],
+  ['QTR', 'Qatar Airways', 'DOH', 'LAX', 'B77W'],
+  ['QTR', 'Qatar Airways', 'DOH', 'ORD', 'B77W'],
+  ['ETD', 'Etihad Airways', 'AUH', 'SYD', 'B789'],
+  ['ETD', 'Etihad Airways', 'AUH', 'MEL', 'B789'],
+  ['ETD', 'Etihad Airways', 'AUH', 'NRT', 'B789'],
+  ['ETD', 'Etihad Airways', 'AUH', 'ICN', 'B789'],
+  ['ETD', 'Etihad Airways', 'AUH', 'PVG', 'B789'],
+  ['ETD', 'Etihad Airways', 'AUH', 'CGK', 'B789'],
+  ['ETD', 'Etihad Airways', 'AUH', 'MNL', 'B789'],
+  ['ETD', 'Etihad Airways', 'AUH', 'CDG', 'B789'],
+  ['ETD', 'Etihad Airways', 'AUH', 'JFK', 'B789'],
+  ['SVA', 'Saudia', 'JED', 'CGK', 'B77W'],
+  ['SVA', 'Saudia', 'JED', 'KUL', 'B789'],
+  ['SVA', 'Saudia', 'RUH', 'LHR', 'B789'],
+  ['SVA', 'Saudia', 'RUH', 'JFK', 'B789'],
+  ['SIA', 'Singapore Airlines', 'SIN', 'LHR', 'A388'],
+  ['SIA', 'Singapore Airlines', 'SIN', 'JFK', 'A359'],
+  ['SIA', 'Singapore Airlines', 'SIN', 'SFO', 'A359'],
+  ['SIA', 'Singapore Airlines', 'SIN', 'FRA', 'A359'],
+  ['SIA', 'Singapore Airlines', 'SIN', 'ZRH', 'A359'],
+  ['SIA', 'Singapore Airlines', 'SIN', 'AKL', 'B77W'],
+  ['CPA', 'Cathay Pacific', 'HKG', 'LHR', 'A359'],
+  ['CPA', 'Cathay Pacific', 'HKG', 'CDG', 'A359'],
+  ['CPA', 'Cathay Pacific', 'HKG', 'FRA', 'A359'],
+  ['CPA', 'Cathay Pacific', 'HKG', 'JFK', 'B77W'],
+  ['CPA', 'Cathay Pacific', 'HKG', 'LAX', 'B77W'],
+  ['CPA', 'Cathay Pacific', 'HKG', 'SYD', 'A359'],
+  ['CPA', 'Cathay Pacific', 'HKG', 'AKL', 'A359'],
+  ['CPA', 'Cathay Pacific', 'HKG', 'PER', 'A333'],
+  ['THA', 'Thai Airways', 'BKK', 'LHR', 'B77W'],
+  ['THA', 'Thai Airways', 'BKK', 'FRA', 'B77W'],
+  ['THA', 'Thai Airways', 'BKK', 'ZRH', 'B77W'],
+  ['THA', 'Thai Airways', 'BKK', 'SYD', 'B77W'],
+  ['THA', 'Thai Airways', 'BKK', 'MEL', 'A359'],
+  ['MAS', 'Malaysia Airlines', 'KUL', 'LHR', 'A359'],
+  ['MAS', 'Malaysia Airlines', 'KUL', 'SYD', 'A333'],
+  ['MAS', 'Malaysia Airlines', 'KUL', 'MEL', 'A333'],
+  ['GIA', 'Garuda Indonesia', 'CGK', 'AMS', 'B77W'],
+  ['GIA', 'Garuda Indonesia', 'CGK', 'ICN', 'A333'],
+  ['GIA', 'Garuda Indonesia', 'CGK', 'SYD', 'A333'],
+  ['KAL', 'Korean Air', 'ICN', 'LHR', 'B77W'],
+  ['KAL', 'Korean Air', 'ICN', 'CDG', 'B77W'],
+  ['KAL', 'Korean Air', 'ICN', 'FRA', 'B77W'],
+  ['KAL', 'Korean Air', 'ICN', 'AMS', 'B77W'],
+  ['KAL', 'Korean Air', 'ICN', 'MAD', 'B789'],
+  ['KAL', 'Korean Air', 'ICN', 'JFK', 'A388'],
+  ['KAL', 'Korean Air', 'ICN', 'LAX', 'A388'],
+  ['KAL', 'Korean Air', 'ICN', 'SYD', 'B77W'],
+  ['ANA', 'All Nippon Airways', 'HND', 'LHR', 'B789'],
+  ['ANA', 'All Nippon Airways', 'HND', 'FRA', 'B789'],
+  ['ANA', 'All Nippon Airways', 'NRT', 'ORD', 'B77W'],
+  ['ANA', 'All Nippon Airways', 'NRT', 'DEL', 'B788'],
+  ['JAL', 'Japan Airlines', 'HND', 'LHR', 'B77W'],
+  ['JAL', 'Japan Airlines', 'HND', 'CDG', 'B788'],
+  ['JAL', 'Japan Airlines', 'NRT', 'JFK', 'B77W'],
+  ['JAL', 'Japan Airlines', 'NRT', 'SYD', 'B789'],
+  ['CES', 'China Eastern', 'PVG', 'LHR', 'B77W'],
+  ['CES', 'China Eastern', 'PVG', 'CDG', 'B77W'],
+  ['CES', 'China Eastern', 'PVG', 'JFK', 'B77W'],
+  ['CES', 'China Eastern', 'PVG', 'LAX', 'B77W'],
+  ['CES', 'China Eastern', 'PVG', 'SYD', 'B77W'],
+  ['AIC', 'Air India', 'DEL', 'LHR', 'B788'],
+  ['AIC', 'Air India', 'DEL', 'JFK', 'B77W'],
+  ['AIC', 'Air India', 'DEL', 'SFO', 'B77W'],
+  ['AIC', 'Air India', 'DEL', 'FRA', 'B788'],
+  ['AIC', 'Air India', 'DEL', 'SYD', 'B788'],
+  ['AIC', 'Air India', 'BOM', 'LHR', 'B788'],
+  ['BAW', 'British Airways', 'LHR', 'HND', 'B789'],
+  ['BAW', 'British Airways', 'LHR', 'PVG', 'B77W'],
+  ['BAW', 'British Airways', 'LHR', 'HKG', 'B77W'],
+  ['BAW', 'British Airways', 'LHR', 'BKK', 'B77W'],
+  ['BAW', 'British Airways', 'LHR', 'DEL', 'B789'],
+  ['BAW', 'British Airways', 'LHR', 'LAX', 'A388'],
+  ['BAW', 'British Airways', 'LHR', 'SFO', 'B77W'],
+  ['VIR', 'Virgin Atlantic', 'LHR', 'DEL', 'A339'],
+  ['VIR', 'Virgin Atlantic', 'LHR', 'LAX', 'B789'],
+  ['DLH', 'Lufthansa', 'FRA', 'HND', 'B748'],
+  ['DLH', 'Lufthansa', 'FRA', 'ICN', 'A359'],
+  ['DLH', 'Lufthansa', 'FRA', 'PVG', 'B748'],
+  ['DLH', 'Lufthansa', 'FRA', 'DEL', 'A359'],
+  ['DLH', 'Lufthansa', 'FRA', 'LAX', 'B748'],
+  ['DLH', 'Lufthansa', 'FRA', 'SFO', 'B748'],
+  ['AFR', 'Air France', 'CDG', 'HND', 'B77W'],
+  ['AFR', 'Air France', 'CDG', 'ICN', 'B77W'],
+  ['AFR', 'Air France', 'CDG', 'PVG', 'B77W'],
+  ['AFR', 'Air France', 'CDG', 'DEL', 'B789'],
+  ['AFR', 'Air France', 'CDG', 'LAX', 'B77W'],
+  ['KLM', 'KLM', 'AMS', 'ICN', 'B77W'],
+  ['KLM', 'KLM', 'AMS', 'HND', 'B789'],
+  ['KLM', 'KLM', 'AMS', 'CGK', 'B77W'],
+  ['KLM', 'KLM', 'AMS', 'DEL', 'B789'],
+  ['KLM', 'KLM', 'AMS', 'SFO', 'B77W'],
+  ['THY', 'Turkish Airlines', 'IST', 'NRT', 'B77W'],
+  ['THY', 'Turkish Airlines', 'IST', 'ICN', 'A359'],
+  ['THY', 'Turkish Airlines', 'IST', 'HKG', 'A359'],
+  ['THY', 'Turkish Airlines', 'IST', 'BKK', 'B77W'],
+  ['THY', 'Turkish Airlines', 'IST', 'CGK', 'B77W'],
+  ['THY', 'Turkish Airlines', 'IST', 'LAX', 'B77W'],
+  ['THY', 'Turkish Airlines', 'IST', 'SFO', 'B77W'],
+  ['SWR', 'Swiss', 'ZRH', 'SIN', 'B77W'],
+  ['SWR', 'Swiss', 'ZRH', 'BKK', 'B77W'],
+  ['SWR', 'Swiss', 'ZRH', 'HND', 'B77W'],
+  ['SWR', 'Swiss', 'ZRH', 'JFK', 'B77W'],
+  ['IBE', 'Iberia', 'MAD', 'JFK', 'A359'],
+  ['IBE', 'Iberia', 'MAD', 'NRT', 'A359'],
+  ['MSR', 'EgyptAir', 'CAI', 'NRT', 'B789'],
+  ['MSR', 'EgyptAir', 'CAI', 'LHR', 'B789'],
+  ['UAL', 'United Airlines', 'SFO', 'SIN', 'B789'],
+  ['UAL', 'United Airlines', 'SFO', 'HKG', 'B77W'],
+  ['UAL', 'United Airlines', 'SFO', 'NRT', 'B77W'],
+  ['UAL', 'United Airlines', 'SFO', 'TPE', 'B77W'],
+  ['UAL', 'United Airlines', 'SFO', 'DEL', 'B789'],
+  ['UAL', 'United Airlines', 'ORD', 'LHR', 'B77W'],
+  ['UAL', 'United Airlines', 'LAX', 'SYD', 'B789'],
+  ['UAL', 'United Airlines', 'SFO', 'AKL', 'B789'],
+  ['AAL', 'American Airlines', 'ORD', 'LHR', 'B77W'],
+  ['AAL', 'American Airlines', 'LAX', 'SYD', 'B789'],
+  ['AAL', 'American Airlines', 'JFK', 'DEL', 'B77W'],
+  ['DAL', 'Delta Air Lines', 'LAX', 'SYD', 'A359'],
+  ['DAL', 'Delta Air Lines', 'LAX', 'HND', 'A359'],
+  ['DAL', 'Delta Air Lines', 'JFK', 'AMS', 'A339'],
+  ['ACA', 'Air Canada', 'YYZ', 'LHR', 'B77W'],
+  ['ACA', 'Air Canada', 'YYZ', 'HKG', 'B77W'],
+  ['ACA', 'Air Canada', 'YYZ', 'NRT', 'B789'],
+  ['ACA', 'Air Canada', 'YYZ', 'DEL', 'B789'],
+  ['ACA', 'Air Canada', 'YYZ', 'SYD', 'B789'],
+  ['QFA', 'Qantas', 'PER', 'LHR', 'B789'],
+  ['QFA', 'Qantas', 'SYD', 'LAX', 'A388'],
+  ['QFA', 'Qantas', 'MEL', 'LAX', 'B789'],
+  ['QFA', 'Qantas', 'SYD', 'HND', 'A332'],
+  ['HAL', 'Hawaiian Airlines', 'HNL', 'NRT', 'A332'],
+  ['HAL', 'Hawaiian Airlines', 'HNL', 'ICN', 'A332'],
+  ['HAL', 'Hawaiian Airlines', 'HNL', 'SYD', 'A332'],
+  ['VJC', 'VietJet Air', 'SGN', 'MEL', 'A333'],
+  ['VJC', 'VietJet Air', 'HAN', 'MEL', 'A333'],
+  // North Atlantic: these leave the continent across southern England
+  ['DLH', 'Lufthansa', 'FRA', 'JFK', 'B748'],
+  ['DLH', 'Lufthansa', 'FRA', 'ORD', 'B748'],
+  ['AFR', 'Air France', 'CDG', 'JFK', 'B77W'],
+  ['AFR', 'Air France', 'CDG', 'SFO', 'B77W'],
+  ['KLM', 'KLM', 'AMS', 'JFK', 'B77W'],
+  ['KLM', 'KLM', 'AMS', 'LAX', 'B77W'],
+  ['SWR', 'Swiss', 'ZRH', 'ORD', 'B77W'],
+  ['IBE', 'Iberia', 'MAD', 'ORD', 'A333'],
+  ['IBE', 'Iberia', 'MAD', 'YYZ', 'A333'],
+  // Indonesia and Bali to North Asia, up the length of the Malacca Strait
+  // and the South China Sea
+  ['CPA', 'Cathay Pacific', 'HKG', 'CGK', 'A333'],
+  ['CPA', 'Cathay Pacific', 'HKG', 'DPS', 'A333'],
+  ['KAL', 'Korean Air', 'ICN', 'CGK', 'A333'],
+  ['KAL', 'Korean Air', 'ICN', 'DPS', 'A333'],
+  ['ANA', 'All Nippon Airways', 'HND', 'CGK', 'B789'],
+  ['JAL', 'Japan Airlines', 'NRT', 'DPS', 'B788'],
+  ['CES', 'China Eastern', 'PVG', 'DPS', 'A333'],
+  ['CES', 'China Eastern', 'PVG', 'CGK', 'A333'],
+  ['THA', 'Thai Airways', 'BKK', 'DPS', 'A333'],
+  ['THA', 'Thai Airways', 'BKK', 'PER', 'B77W'],
+  ['CPA', 'Cathay Pacific', 'HKG', 'MEL', 'A359'],
+];
 
 // airline word marks in brand colors: [background, text, IATA code].
 // real logo files win when present — drop PNGs named by ICAO code
@@ -431,6 +613,15 @@ for (let i = 0; i < 8; i++) G.gates.push({ id: (i < 4 ? 'A' : 'B') + ((i % 4) + 
 let flights = [];
 let selected = null;
 
+// Selecting toggles, and clearing `_chat` makes the radio call out the
+// aircraft's current phase straight away — otherwise you hear nothing until
+// it happens to change state, which on a quiet scope can be a long wait.
+function select(f) {
+  selected = selected === f ? null : f;
+  if (selected) selected._chat = null;
+  return selected;
+}
+
 const AIR_STATES = new Set(['descent', 'base', 'final', 'climb', 'cruise']);
 const GROUND_STATES = new Set(['rollout', 'taxi-in', 'at-gate', 'boarding', 'pushback', 'taxi-out', 'lineup', 'takeoff']);
 
@@ -493,26 +684,68 @@ function spawnDeparture() {
   return f;
 }
 
+const EARTH_NM = 3440.065;
+
+// great-circle distance between two airports, in nautical miles
+function gcDist(a, b) {
+  const p1 = rad(a.lat), p2 = rad(b.lat);
+  const dp = p2 - p1, dl = rad(b.lon - a.lon);
+  const h = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+  return 2 * EARTH_NM * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+// how far the field sits off the o->d great circle, and how far along it.
+// Bearings alone aren't enough: DXB-SYD leaves New York on "opposite sides"
+// by bearing while passing nowhere near it.
+function offTrack(field, o, d) {
+  const d13 = gcDist(o, field) / EARTH_NM;
+  const t13 = rad(initialBearing(o, field));
+  const t12 = rad(initialBearing(o, d));
+  const xt = Math.asin(Math.sin(d13) * Math.sin(t13 - t12));
+  // acos can't tell ahead from behind, so take the sign from the bearing:
+  // a field behind the departure end isn't on the route at all
+  const at = Math.acos(Math.min(1, Math.cos(d13) / Math.cos(xt))) *
+    Math.sign(Math.cos(t13 - t12));
+  return { cross: Math.abs(xt) * EARTH_NM, along: at * EARTH_NM };
+}
+
+// which real overflights actually cross this airport's scope: both ends away
+// from the field, the track passing within a scope-width of it, and the field
+// genuinely between the two ends rather than off the far end of the line
+const TRANSIT_CORRIDOR_NM = 150;
+
+function transitsOver(code) {
+  const field = AIRPORTS[code];
+  return TRANSIT_ROUTES.filter(([, , o, d]) => {
+    if (o === code || d === code) return false;
+    const A = AIRPORTS[o], B = AIRPORTS[d];
+    const { cross, along } = offTrack(field, A, B);
+    return cross <= TRANSIT_CORRIDOR_NM && along > 0 && along < gcDist(A, B);
+  });
+}
+
+let transitPool = [];
+
+// Some fields simply aren't under a long-haul corridor — very little crosses
+// New York on its way between the airports this sim knows — so they get no
+// transit traffic at all rather than an invented one.
 function spawnTransit() {
-  for (let tries = 0; tries < 14; tries++) {
-    let o, d2;
-    do { o = rand(CODES); } while (o === hub);
-    do { d2 = rand(CODES); } while (d2 === hub || d2 === o);
-    const bIn = initialBearing(AIRPORTS[hub], AIRPORTS[o]);
-    const bOut = initialBearing(AIRPORTS[hub], AIRPORTS[d2]);
-    if (angDiff(bIn, bOut) < 80) continue;
-    const f = makeFlight([rand(TRANSIT_AIRLINES), '', d2, rand(['B77W', 'A359', 'B789', 'A388', 'A333'])], 'TRN');
-    f.origin = o;
-    f.dest = d2;
-    f.pos = pt(bIn + jitter(8), 88);
-    f.exit = pt(bOut + jitter(8), 96);
-    f.heading = bearingTo(f.pos, f.exit);
-    f.speed = 400 + Math.random() * 80;
-    f.alt = 29000 + Math.random() * 11000;
-    f.state = 'cruise';
-    return f;
-  }
-  return spawnArrival();
+  if (!transitPool.length) return null;
+  // fly it in whichever direction we drew it
+  const [icao, airline, a, b, type] = rand(transitPool);
+  const [o, d2] = Math.random() < 0.5 ? [a, b] : [b, a];
+  const bIn = initialBearing(AIRPORTS[hub], AIRPORTS[o]);
+  const bOut = initialBearing(AIRPORTS[hub], AIRPORTS[d2]);
+  const f = makeFlight([icao, airline, d2, type], 'TRN');
+  f.origin = o;
+  f.dest = d2;
+  f.pos = pt(bIn + jitter(8), 88);
+  f.exit = pt(bOut + jitter(8), 96);
+  f.heading = bearingTo(f.pos, f.exit);
+  f.speed = 400 + Math.random() * 80;
+  f.alt = 29000 + Math.random() * 11000;
+  f.state = 'cruise';
+  return f;
 }
 
 function topUpTraffic() {
@@ -524,7 +757,10 @@ function topUpTraffic() {
   else if (deps < 5) {
     const f = spawnDeparture();
     if (f) flights.push(f);
-  } else if (trns < 3) flights.push(spawnTransit());
+  } else if (trns < 3) {
+    const f = spawnTransit();
+    if (f) flights.push(f);
+  }
 }
 
 function seedTraffic() {
@@ -536,7 +772,8 @@ function seedTraffic() {
     const f = spawnDeparture();
     if (f) { f.gnd.timer *= Math.random(); flights.push(f); }
   }
-  flights.push(spawnTransit());
+  const trn = spawnTransit();
+  if (trn) flights.push(trn);
   for (const f of flights) {
     if (f.state === 'descent') {
       const s = 0.35 + Math.random() * 0.6;
@@ -1319,7 +1556,7 @@ sidebar.addEventListener('click', (e) => {
   const el = e.target.closest('.fcard');
   if (!el) return;
   const f = flights.find((x) => x.callsign === el.dataset.cs);
-  selected = selected === f ? null : f;
+  select(f);
   renderSidebar();
 });
 
@@ -1397,7 +1634,7 @@ for (const el of [ttArr, ttDep]) {
     const row = e.target.closest('.tt-row');
     if (!row) return;
     const f = flights.find((x) => x.callsign === row.dataset.cs);
-    selected = selected === f ? null : f;
+    select(f);
     renderTimetable();
   });
 }
@@ -1425,7 +1662,7 @@ scopeCanvas.addEventListener('click', (e) => {
     const d = Math.hypot(s.x - mx, s.y - my);
     if (d < bestD) { best = f; bestD = d; }
   }
-  selected = best === selected ? null : best;
+  select(best);
   renderSidebar();
 });
 
@@ -1440,7 +1677,7 @@ groundCanvas.addEventListener('click', (e) => {
     const d = Math.hypot(s.x - mx, s.y - my);
     if (d < bestD) { best = f; bestD = d; }
   }
-  selected = best === selected ? null : best;
+  select(best);
   renderSidebar();
 });
 
@@ -1547,16 +1784,49 @@ function radio(lines) {
   step(0);
 }
 
+// The voice list is populated asynchronously — getVoices() is usually empty
+// on the first call, and an utterance with no usable voice is silently
+// dropped on iOS and several Android WebViews.
+let voice = null;
+
+function pickVoice() {
+  if (!window.speechSynthesis) return;
+  const vs = speechSynthesis.getVoices();
+  if (!vs.length) return;
+  voice = vs.find((v) => /^en[-_](GB|US)/i.test(v.lang)) ||
+          vs.find((v) => /^en\b|^en[-_]/i.test(v.lang)) ||
+          vs[0];
+}
+pickVoice();
+if (window.speechSynthesis) speechSynthesis.addEventListener('voiceschanged', pickVoice);
+
+function utter(text, volume) {
+  const u = new SpeechSynthesisUtterance(text);
+  if (voice) u.voice = voice;
+  u.lang = voice ? voice.lang : 'en-GB';
+  u.rate = 1.05;
+  u.pitch = 0.75;
+  u.volume = volume;
+  return u;
+}
+
 function speak(text) {
   if (!soundOn || !window.speechSynthesis) return;
   squelch();
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = 1.05;
-  u.pitch = 0.75;
-  u.volume = 0.9;
-  speechSynthesis.speak(u);
+  // cancel() immediately followed by speak() wedges the queue on Safari.
+  // Only clear a line that's still running, and let the new one start on
+  // the next tick so the cancel has landed.
+  if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+  setTimeout(() => {
+    if (soundOn) speechSynthesis.speak(utter(text, 0.9));
+  }, 0);
 }
+
+// iOS throttles the 3.6s timer chain in radio() when the tab goes to the
+// background and can leave the queue stuck; clear it on the way out
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && window.speechSynthesis) speechSynthesis.cancel();
+});
 
 function squelch() {
   if (!ac) return;
@@ -1579,6 +1849,47 @@ function squelch() {
 
 let ac = null, humGain = null;
 let soundOn = false;
+
+// A page whose only output is Web Audio lands in iOS's "ambient" audio
+// session, which the ringer switch silences. Claiming "playback" — the
+// category media players use — makes the radio audible on silent. It also
+// stops whatever else the phone was playing, so we only hold the claim
+// while sound is on and hand it back the moment it goes off.
+let silentEl = null;
+
+// a tenth of a second of ±1-LSB tone: inaudible, but genuine non-zero
+// output, which is what iOS wants before it opens a playback session
+function silentClipURL() {
+  const rate = 8000, n = 800;
+  const buf = new ArrayBuffer(44 + n * 2);
+  const v = new DataView(buf);
+  const tag = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  tag(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); tag(8, 'WAVEfmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  tag(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, i % 2 ? 1 : -1, true);
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+
+function claimPlayback(on) {
+  if (navigator.audioSession) navigator.audioSession.type = on ? 'playback' : 'auto';
+  // older iOS has no audioSession — there, a media element in playback is
+  // what moves the page out of the ambient category
+  if (on) {
+    if (!silentEl) {
+      silentEl = new Audio(silentClipURL());
+      silentEl.loop = true;
+      silentEl.playsInline = true;
+      silentEl.preload = 'auto';
+    }
+    const p = silentEl.play();
+    if (p) p.catch(() => { /* no gesture yet, or not supported */ });
+  } else if (silentEl) {
+    silentEl.pause();
+  }
+}
 
 function ensureAudio() {
   if (ac) return;
@@ -1657,6 +1968,7 @@ function setHub(code) {
   RWY_HDG = AIRPORTS[hub].rwy % 360;
   FAF = pt((RWY_HDG + 180) % 360, FAF_DIST);
   hubSel.value = hub;
+  transitPool = transitsOver(hub);
   seedTraffic();
   if (W) buildStatic();
   renderSidebar();
@@ -1710,12 +2022,27 @@ wxBtn.addEventListener('click', () => {
 });
 
 soundBtn.addEventListener('click', () => {
-  ensureAudio();
-  ac.resume();
   soundOn = !soundOn;
+  // claim the session before the context exists, so it opens in the right
+  // category rather than having to be re-routed afterwards
+  claimPlayback(soundOn);
+  ensureAudio();
+  ac.resume().catch(() => { /* resumes on the next gesture */ });
   humGain.gain.setTargetAtTime(soundOn ? 0.05 : 0, ac.currentTime, 0.3);
   soundBtn.textContent = (soundOn ? '\u{1F50A}' : '\u{1F507}') + ' sound';
   soundBtn.setAttribute('aria-pressed', String(soundOn));
+
+  if (soundOn) {
+    // iOS only ever allows speech if the first utterance is spoken inside a
+    // user gesture — every later line is dropped otherwise. Doubles as a
+    // confirmation that the radio is live.
+    if (window.speechSynthesis) {
+      pickVoice();
+      speechSynthesis.speak(utter(`${hub} tower, radio check.`, 0.9));
+    }
+  } else if (window.speechSynthesis) {
+    speechSynthesis.cancel();
+  }
 });
 
 window.addEventListener('keydown', (e) => {
